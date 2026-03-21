@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Fairway Bets</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#091510;--surf:#102019;--card:#182d20;--brd:#234535;
+  --gold:#c9a84b;--gold2:#e8cb72;--txt:#ede8d8;--mut:#7b9a85;--dim:#2a4238;
+  --red:#d85050;--green:#5ec47a;
+  --p1:#e0835a;--p2:#5a9ed6;--p3:#a07dd4;--p4:#5ec47a;
+  --p1bg:rgba(224,131,90,.15);--p2bg:rgba(90,158,214,.15);
+  --p3bg:rgba(160,125,212,.15);--p4bg:rgba(94,196,122,.15);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;height:100%}
+body{background:var(--bg);color:var(--txt);font-family:'Outfit',sans-serif;min-height:100vh;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
+#app{max-width:430px;margin:0 auto;min-height:100vh;position:relative}
+.screen{min-height:100vh;display:none;flex-direction:column}
+.screen.active{display:flex}
+
+/* Top bar */
+.topbar{display:flex;align-items:center;padding:52px 20px 14px;gap:12px;background:var(--surf);border-bottom:1px solid var(--brd);flex-shrink:0}
+.back-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:1px solid var(--brd);border-radius:8px;cursor:pointer;color:var(--mut);font-size:22px;background:none;flex-shrink:0}
+.back-btn:active{background:var(--dim)}
+.topbar h2{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;color:var(--gold);flex:1}
+.topbar-btn{padding:8px 14px;border:1px solid var(--gold);border-radius:8px;background:none;color:var(--gold);font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}
+.topbar-btn:active{background:rgba(201,168,75,.15)}
+
+/* Progress bar */
+.prog-bar{height:3px;background:var(--brd);flex-shrink:0}
+.prog-fill{height:100%;background:var(--gold);transition:width .4s ease}
+
+/* Scroll area */
+.scroll{flex:1;overflow-y:auto;padding:20px;-webkit-overflow-scrolling:touch}
+
+/* Buttons */
+.btn{width:100%;padding:16px;border-radius:12px;font-family:'Outfit',sans-serif;font-size:16px;font-weight:500;cursor:pointer;border:none;transition:all .15s;display:block;text-align:center}
+.btn+.btn{margin-top:10px}
+.btn-gold{background:var(--gold);color:#091510}
+.btn-gold:active{transform:scale(.98);background:var(--gold2)}
+.btn-outline{background:none;border:1px solid var(--brd);color:var(--txt)}
+.btn-outline:active{background:var(--dim)}
+.btn-ghost{background:none;border:1px solid var(--brd);color:var(--mut);padding:12px}
+.btn-ghost:active{background:var(--dim)}
+.btn-danger{background:none;border:1px solid #5a2222;color:var(--red)}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:16px;margin-bottom:12px}
+
+/* Inputs */
+input[type=text],input[type=number]{
+  background:var(--dim);border:1px solid var(--brd);border-radius:8px;
+  color:var(--txt);font-family:'Outfit',sans-serif;font-size:15px;
+  padding:10px 14px;outline:none;transition:border-color .15s;
+  -webkit-appearance:none;appearance:none;
+}
+input[type=text]:focus,input[type=number]:focus{border-color:var(--gold)}
+input[type=number]{text-align:center;width:80px}
+
+/* Toggle */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--brd)}
+.toggle-row:last-child{border-bottom:none}
+.t-label h3{font-size:15px;font-weight:500}
+.t-label p{font-size:12px;color:var(--mut);margin-top:2px}
+.tog{width:48px;height:28px;background:var(--dim);border-radius:14px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;border:none;padding:0}
+.tog.on{background:var(--gold)}
+.tog::after{content:'';position:absolute;width:22px;height:22px;background:#fff;border-radius:50%;top:3px;left:3px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.tog.on::after{transform:translateX(20px)}
+
+/* Scorecard */
+.sc-head{display:grid;grid-template-columns:28px 24px 1fr 1fr 1fr 1fr;gap:2px;padding:10px 12px;background:var(--surf);border-bottom:2px solid var(--brd);position:sticky;top:0;z-index:5}
+.sc-head .ch{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;text-align:center}
+.ph{display:flex;flex-direction:column;align-items:center;gap:3px}
+.ph-dot{width:8px;height:8px;border-radius:50%}
+.ph span{font-size:10px;color:var(--txt);font-weight:500;max-width:58px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+
+.hole-row{display:grid;grid-template-columns:28px 24px 1fr 1fr 1fr 1fr;gap:2px;padding:4px 12px;border-bottom:1px solid var(--brd);align-items:center;cursor:pointer;transition:background .1s;min-height:54px}
+.hole-row:active{background:rgba(255,255,255,.03)}
+.hole-row.par3{background:rgba(201,168,75,.03)}
+.h-num{font-size:12px;color:var(--mut);font-weight:500;text-align:center}
+.h-par{font-size:11px;color:var(--mut);text-align:center}
+.score-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;height:46px;border-radius:6px;padding:2px}
+.score-cell .g{font-size:19px;font-weight:600;line-height:1}
+.score-cell .nl{font-size:9px;color:var(--mut);margin-top:1px}
+.score-cell .ctpb{font-size:8px;padding:1px 3px;background:var(--gold);color:#091510;border-radius:3px;font-weight:700;margin-top:1px}
+.sc-eagle{outline:2px solid var(--gold)}
+.sc-birdie{outline:1px solid rgba(201,168,75,.5)}
+.sc-bogey{outline:1px solid rgba(216,80,80,.3)}
+.sc-double{outline:1px solid rgba(216,80,80,.6)}
+.sc-triple{outline:2px solid var(--red)}
+
+.nine-div{display:grid;grid-template-columns:28px 24px 1fr 1fr 1fr 1fr;gap:2px;padding:7px 12px;background:var(--surf);border-top:2px solid var(--brd);border-bottom:1px solid var(--brd)}
+.nine-lbl{font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;font-weight:600;grid-column:1/3;display:flex;align-items:center}
+.nine-tot{font-size:13px;font-weight:600;text-align:center}
+
+/* Score entry sheet */
+.overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.65);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.overlay.open{display:flex}
+.sheet{background:var(--surf);border-radius:20px 20px 0 0;width:100%;max-width:430px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.sheet-handle{width:40px;height:4px;background:var(--brd);border-radius:2px;margin:12px auto 14px}
+.sheet-title{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--gold);text-align:center;padding:0 20px 2px}
+.sheet-sub{font-size:12px;color:var(--mut);text-align:center;padding:0 20px 14px;border-bottom:1px solid var(--brd)}
+
+.psr{display:flex;align-items:center;padding:13px 20px;border-bottom:1px solid var(--brd);gap:14px}
+.psr-info{flex:1}
+.psr-name{font-size:15px;font-weight:500}
+.psr-hc{font-size:11px;color:var(--mut);margin-top:2px}
+.stepper{display:flex;align-items:center;gap:10px}
+.step-btn{width:42px;height:42px;border-radius:10px;background:var(--dim);border:1px solid var(--brd);color:var(--txt);font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:300;line-height:1;padding:0}
+.step-btn:active{background:var(--gold);color:#091510;border-color:var(--gold)}
+.step-val{width:42px;text-align:center;font-size:26px;font-weight:600;line-height:1}
+
+.ctp-sec{padding:14px 20px;border-bottom:1px solid var(--brd)}
+.ctp-sec h4{font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:10px}
+.ctp-opts{display:flex;gap:8px;flex-wrap:wrap}
+.ctp-opt{padding:9px 14px;border-radius:8px;border:1px solid var(--brd);background:none;color:var(--txt);font-family:'Outfit',sans-serif;font-size:14px;cursor:pointer}
+.ctp-opt.sel{background:var(--gold);color:#091510;border-color:var(--gold)}
+
+/* Live leaderboard */
+.lb-game{font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:10px}
+.lb-seg{font-size:12px;color:var(--mut);margin-bottom:6px}
+.lb-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--brd)}
+.lb-row:last-child{border-bottom:none}
+.lb-pos{width:18px;font-size:12px;color:var(--mut)}
+.lb-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.lb-name{flex:1;font-size:14px;font-weight:500}
+.lb-val{font-size:14px;font-weight:600}
+.pos{color:var(--green)}.neg{color:var(--red)}.neu{color:var(--mut)}
+
+/* Settlement */
+.settle-card{background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.sc-from{flex:1}
+.sc-from .lbl{font-size:10px;color:var(--mut);margin-bottom:2px}
+.sc-from .nm{font-size:15px;font-weight:600}
+.sc-arr{font-size:20px;color:var(--mut)}
+.sc-to{flex:1;text-align:right}
+.sc-to .lbl{font-size:10px;color:var(--mut);margin-bottom:2px}
+.sc-to .nm{font-size:15px;font-weight:600}
+.sc-amt{font-size:22px;font-weight:700;color:var(--gold);min-width:56px;text-align:right}
+
+/* Winner cards */
+.win-card{background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
+.win-icon{font-size:26px;width:36px;text-align:center}
+.win-info{flex:1}
+.win-game{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.win-name{font-size:15px;font-weight:600}
+.win-amt{font-size:15px;font-weight:700;color:var(--gold)}
+
+/* Home */
+.hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center}
+.hero-logo{font-size:72px;line-height:1;margin-bottom:12px;filter:drop-shadow(0 4px 12px rgba(201,168,75,.3))}
+.hero-title{font-family:'Cormorant Garamond',serif;font-size:46px;font-weight:700;color:var(--gold);letter-spacing:-.02em;line-height:1;margin-bottom:8px}
+.hero-sub{font-size:15px;color:var(--mut);margin-bottom:24px;letter-spacing:.05em}
+.resume-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(201,168,75,.12);border:1px solid rgba(201,168,75,.3);color:var(--gold);font-size:12px;padding:5px 12px;border-radius:20px;margin-bottom:8px}
+.resume-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* History */
+.hist-item{background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:14px;margin-bottom:10px}
+.hist-date{font-size:11px;color:var(--mut);margin-bottom:5px}
+.hist-names{font-size:14px;font-weight:500;margin-bottom:8px}
+.hist-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.hist-tag{font-size:10px;padding:2px 8px;background:var(--dim);border-radius:4px;color:var(--mut)}
+.hist-bals{display:flex;gap:14px;flex-wrap:wrap}
+
+/* Player setup */
+.player-card{background:var(--card);border-radius:12px;padding:14px;margin-bottom:10px;border-left:3px solid transparent}
+.pc-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.pc-dot{width:12px;height:12px;border-radius:50%}
+
+.safe{height:env(safe-area-inset-bottom, 20px);min-height:20px}
+.divider{height:1px;background:var(--brd);margin:16px 0}
+.empty-state{text-align:center;padding:60px 20px;color:var(--mut)}
+.empty-state .ei{font-size:48px;margin-bottom:16px}
+
+/* Scan overlay */
+.scan-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.scan-overlay.open{display:flex}
+.scan-box{background:var(--surf);border:1px solid var(--brd);border-radius:20px;width:100%;max-width:400px;padding:24px;text-align:center}
+.scan-icon{font-size:52px;margin-bottom:12px}
+.scan-title{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:var(--gold);margin-bottom:6px}
+.scan-sub{font-size:14px;color:var(--mut);margin-bottom:20px;line-height:1.5}
+.scan-preview{width:100%;max-height:200px;object-fit:contain;border-radius:10px;margin-bottom:16px;display:none;background:var(--dim)}
+.scan-result{text-align:left;margin-top:16px;max-height:220px;overflow-y:auto}
+.scan-player-result{padding:10px 0;border-bottom:1px solid var(--brd)}
+.scan-player-result:last-child{border-bottom:none}
+.scan-player-name{font-size:13px;font-weight:600;margin-bottom:6px}
+.scan-scores-row{display:flex;flex-wrap:wrap;gap:4px}
+.scan-score-chip{font-size:11px;background:var(--dim);border-radius:4px;padding:2px 6px;color:var(--txt)}
+.spin{display:inline-block;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.scan-warn{background:rgba(201,168,75,.1);border:1px solid rgba(201,168,75,.3);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--gold);margin-bottom:12px;text-align:left;line-height:1.5}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="overlay" id="overlay" onclick="closeSheet(event)">
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<!-- Scan scorecard overlay -->
+<div class="scan-overlay" id="scan-overlay">
+  <div class="scan-box">
+    <div class="scan-icon">📷</div>
+    <div class="scan-title">Scan Scorecard</div>
+    <div class="scan-sub">Take a photo of the paper scorecard. Claude will read the scores and fill everything in automatically.</div>
+    <img id="scan-preview" class="scan-preview" alt="Scorecard preview">
+    <div id="scan-result" class="scan-result"></div>
+    <div id="scan-action" style="margin-top:16px">
+      <label style="display:block;width:100%;margin-bottom:10px">
+        <span class="btn btn-gold" style="display:block;cursor:pointer">📷 Take Photo / Choose Image</span>
+        <input type="file" accept="image/*" capture="environment" onchange="handleScanFile(this)" style="display:none">
+      </label>
+      <button class="btn btn-ghost" onclick="closeScan()">Cancel</button>
+    </div>
+  </div>
+</div>
+<script>
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
+const PC=['#e0835a','#5a9ed6','#a07dd4','#5ec47a'];
+const PBG=['rgba(224,131,90,.15)','rgba(90,158,214,.15)','rgba(160,125,212,.15)','rgba(94,196,122,.15)'];
+const PARS=[4,4,3,4,5,3,4,4,5,4,4,3,5,4,3,4,4,5];
+const SI=[7,11,15,1,5,13,3,9,17,8,12,16,2,6,14,4,10,18];
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let S={
+  screen:'home',
+  players:[{name:'',hc:0},{name:'',hc:0},{name:'',hc:0},{name:'',hc:0}],
+  strokes:[0,0,0,0],
+  games:{
+    nassau:{on:true,front:10,back:10,overall:20},
+    skins:{on:true,amt:5},
+    match:{on:false,amt:50},
+    stroke:{on:false,amt:20},
+    ctp:{on:true,amt:10}
+  },
+  holes:PARS.map((par,i)=>({par,si:SI[i]})),
+  scores:blank18(),
+  history:[]
+};
+
+function blank18(){return Array(18).fill(null).map(()=>({g:[null,null,null,null],ctp:null}));}
+
+// ─── STORAGE ─────────────────────────────────────────────────────────────────
+function load(){
+  try{
+    const h=localStorage.getItem('fb_h');
+    if(h) S.history=JSON.parse(h);
+    const r=localStorage.getItem('fb_r');
+    if(r){const d=JSON.parse(r);S.players=d.players;S.games=d.games;S.holes=d.holes;S.scores=d.scores;if(d.strokes)S.strokes=d.strokes;}
+  }catch(e){}
+}
+function saveRound(){
+  try{localStorage.setItem('fb_r',JSON.stringify({players:S.players,games:S.games,holes:S.holes,scores:S.scores,strokes:S.strokes}));}catch(e){}
+}
+function clearRound(){localStorage.removeItem('fb_r');}
+function pushHistory(e){
+  S.history.unshift(e);
+  try{localStorage.setItem('fb_h',JSON.stringify(S.history.slice(0,50)));}catch(e){}
+}
+
+// ─── CALCULATIONS ────────────────────────────────────────────────────────────
+function lowHc(){
+  const active=S.players.filter(p=>p.name);
+  return active.length?Math.min(...active.map(p=>p.hc)):0;
+}
+function playingHc(pi){return S.strokes[pi]||0;}
+function hcStrokes(hc,si){return Math.floor(hc/18)+(si<=(hc%18)?1:0);}
+function getNet(h,pi){
+  const g=S.scores[h].g[pi];
+  if(g===null)return null;
+  return g-hcStrokes(playingHc(pi),S.holes[h].si);
+}
+function segNets(from,to){
+  return S.players.map((_,pi)=>{
+    let t=0;
+    for(let h=from;h<=to;h++){const n=getNet(h,pi);if(n===null)return null;t+=n;}
+    return t;
+  });
+}
+function skinsCalc(){
+  const res=[];let carried=0;
+  for(let h=0;h<18;h++){
+    const nets=S.players.map((_,pi)=>getNet(h,pi));
+    if(nets.some(n=>n===null)){res.push({h,w:null,pot:0,pending:true,carried});continue;}
+    const mn=Math.min(...nets);
+    const ws=nets.reduce((a,n,i)=>n===mn?[...a,i]:a,[]);
+    if(ws.length===1){res.push({h,w:ws[0],pot:1+carried,carried});carried=0;}
+    else{res.push({h,w:null,pot:0,tied:true,carried});carried++;}
+  }
+  return res;
+}
+function mpWins(){
+  const w=[0,0,0,0];
+  for(let h=0;h<18;h++){
+    const nets=S.players.map((_,pi)=>getNet(h,pi));
+    if(nets.some(n=>n===null))continue;
+    const mn=Math.min(...nets);
+    const ws=nets.reduce((a,n,i)=>n===mn?[...a,i]:a,[]);
+    if(ws.length===1)w[ws[0]]++;
+  }
+  return w;
+}
+function balances(){
+  const bal=[0,0,0,0];
+  // Nassau
+  if(S.games.nassau.on){
+    [{nets:segNets(0,8),amt:S.games.nassau.front},
+     {nets:segNets(9,17),amt:S.games.nassau.back},
+     {nets:segNets(0,17),amt:S.games.nassau.overall}
+    ].forEach(({nets,amt})=>{
+      if(nets.some(x=>x===null)||!amt)return;
+      const mn=Math.min(...nets);
+      const ws=nets.reduce((a,x,i)=>x===mn?[...a,i]:a,[]);
+      if(ws.length===1)nets.forEach((_,i)=>{if(i!==ws[0]){bal[ws[0]]+=amt;bal[i]-=amt;}});
+    });
+  }
+  // Skins
+  if(S.games.skins.on){
+    const sw=[0,0,0,0];
+    skinsCalc().forEach(r=>{if(r.w!==null)sw[r.w]+=r.pot;});
+    sw.forEach((wa,i)=>sw.forEach((wb,j)=>{
+      if(i<j){const n=(wa-wb)*S.games.skins.amt;bal[i]+=n;bal[j]-=n;}
+    }));
+  }
+  // CTP
+  if(S.games.ctp.on){
+    for(let h=0;h<18;h++){
+      if(S.holes[h].par===3&&S.scores[h].ctp!==null){
+        const w=S.scores[h].ctp;
+        S.players.forEach((_,i)=>{if(i!==w){bal[w]+=S.games.ctp.amt;bal[i]-=S.games.ctp.amt;}});
+      }
+    }
+  }
+  // Match Play
+  if(S.games.match.on){
+    const w=mpWins();const mx=Math.max(...w);
+    const ws=w.reduce((a,x,i)=>x===mx?[...a,i]:a,[]);
+    if(ws.length===1)w.forEach((_,i)=>{if(i!==ws[0]){bal[ws[0]]+=S.games.match.amt;bal[i]-=S.games.match.amt;}});
+  }
+  // Stroke Play
+  if(S.games.stroke.on){
+    const tots=segNets(0,17);
+    if(!tots.some(x=>x===null)){
+      const mn=Math.min(...tots);
+      const ws=tots.reduce((a,x,i)=>x===mn?[...a,i]:a,[]);
+      if(ws.length===1)tots.forEach((_,i)=>{if(i!==ws[0]){bal[ws[0]]+=S.games.stroke.amt;bal[i]-=S.games.stroke.amt;}});
+    }
+  }
+  return bal;
+}
+function simplify(bal){
+  const txns=[];
+  const pos=bal.map((b,i)=>({b,i})).filter(x=>x.b>0.5).sort((a,b)=>b.b-a.b);
+  const neg=bal.map((b,i)=>({b,i})).filter(x=>x.b<-0.5).sort((a,b)=>a.b-b.b);
+  let ci=0,di=0;
+  while(ci<pos.length&&di<neg.length){
+    const c=pos[ci],d=neg[di];
+    const amt=Math.min(c.b,-d.b);
+    txns.push({from:d.i,to:c.i,amt:Math.round(amt)});
+    c.b-=amt;d.b+=amt;
+    if(c.b<0.5)ci++;
+    if(d.b>-0.5)di++;
+  }
+  return txns;
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function pn(i){return S.players[i].name||`P${i+1}`;}
+function holesIn(){
+  const active=S.players.map((_,i)=>i).filter(i=>S.players[i].name);
+  return S.scores.filter(s=>active.every(i=>s.g[i]!==null)).length;
+}
+function hasRound(){return S.players.some(p=>p.name)&&S.scores.some(s=>s.g.some(g=>g!==null));}
+function par3s(){return S.holes.map((h,i)=>h.par===3?i:-1).filter(i=>i>=0);}
+function diffCls(d){
+  if(d===null||d===undefined)return '';
+  if(d<=-2)return 'sc-eagle';if(d===-1)return 'sc-birdie';
+  if(d===1)return 'sc-bogey';if(d===2)return 'sc-double';if(d>=3)return 'sc-triple';
+  return '';
+}
+
+// ─── NAVIGATION ──────────────────────────────────────────────────────────────
+function nav(s){
+  S.screen=s;
+  document.querySelectorAll('.screen').forEach(el=>el.classList.remove('active'));
+  render();
+  window.scrollTo(0,0);
+}
+
+// ─── RENDER ROUTER ───────────────────────────────────────────────────────────
+function render(){
+  const map={home:renderHome,setup:renderSetup,games:renderGames,course:renderCourse,
+    scorecard:renderScorecard,live:renderLive,summary:renderSummary,
+    settlement:renderSettlement,history:renderHistory};
+  if(map[S.screen])map[S.screen]();
+}
+function ensureScr(id){
+  let el=document.getElementById('s-'+id);
+  if(!el){el=document.createElement('div');el.id='s-'+id;el.className='screen';document.getElementById('app').appendChild(el);}
+  el.classList.add('active');
+  return el;
+}
+
+// ─── HOME ─────────────────────────────────────────────────────────────────────
+function renderHome(){
+  const el=ensureScr('home');
+  const r=hasRound();
+  el.innerHTML=`
+<div class="hero">
+  <div class="hero-logo">⛳</div>
+  <div class="hero-title">Fairway<br>Bets</div>
+  <div class="hero-sub">Golf · Wagers · Settled</div>
+  ${r?`<div class="resume-pill"><span class="resume-dot"></span> Round in progress</div>`:''}
+</div>
+<div style="padding:0 20px 20px">
+  ${r?`<button class="btn btn-gold" onclick="nav('scorecard')">Resume Round</button>`:''}
+  <button class="btn ${r?'btn-outline':'btn-gold'}" onclick="newRound()">New Round</button>
+  <button class="btn btn-outline" onclick="nav('history')">Past Rounds</button>
+  ${r?`<button class="btn btn-danger" style="margin-top:20px" onclick="abandon()">Abandon Current Round</button>`:''}
+  <div class="safe"></div>
+</div>`;
+}
+function syncStrokes(){
+  const low=lowHc();
+  S.strokes=S.players.map(p=>p.name?Math.max(0,p.hc-low):0);
+}
+function newRound(){
+  S.players=[{name:'',hc:0},{name:'',hc:0},{name:'',hc:0},{name:'',hc:0}];
+  S.strokes=[0,0,0,0];
+  S.scores=blank18();
+  S.holes=Array(18).fill(null).map((_,i)=>({par:4,si:SI[i]}));
+  S.games={nassau:{on:true,front:10,back:10,overall:20},skins:{on:true,amt:5},match:{on:false,amt:50},stroke:{on:false,amt:20},ctp:{on:true,amt:10}};
+  nav('setup');
+}
+function abandon(){
+  if(!confirm('Abandon this round? All scores will be lost.'))return;
+  clearRound();S.players=[{name:'',hc:0},{name:'',hc:0},{name:'',hc:0},{name:'',hc:0}];S.scores=blank18();
+  nav('home');
+}
+
+// ─── SETUP ───────────────────────────────────────────────────────────────────
+function renderSetup(){
+  const el=ensureScr('setup');
+  const active=S.players.filter(p=>p.name);
+  const low=lowHc();
+  const lowPlayer=S.players.find(p=>p.name&&p.hc===low);
+  const showStrokes=active.length>0;
+
+  el.innerHTML=`
+<div class="topbar">
+  <button class="back-btn" onclick="nav('home')">‹</button>
+  <h2>Players</h2>
+</div>
+<div class="scroll">
+  <p style="font-size:14px;color:var(--mut);margin-bottom:16px">Enter names and handicaps. Leave unused player slots blank.</p>
+  ${S.players.map((p,i)=>`
+  <div class="player-card" style="border-left-color:${PC[i]}">
+    <div class="pc-header">
+      <div class="pc-dot" style="background:${PC[i]}"></div>
+      <span style="font-size:12px;color:var(--mut)">Player ${i+1}</span>
+    </div>
+    <input type="text" placeholder="Name" value="${p.name}" oninput="S.players[${i}].name=this.value.trim();syncStrokes();renderSetup()" style="width:100%;margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:14px;color:var(--mut);flex:1">Handicap (0–54)</span>
+      <input type="number" min="0" max="54" value="${p.hc}" oninput="S.players[${i}].hc=Math.max(0,+this.value||0);syncStrokes();renderSetup()">
+    </div>
+  </div>`).join('')}
+
+  ${showStrokes?`
+  <div style="background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:14px;margin-bottom:12px">
+    <div style="font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:4px">Strokes this round</div>
+    <div style="font-size:12px;color:var(--mut);margin-bottom:12px;line-height:1.5">Auto-calculated from handicaps — adjust any player manually by tapping + or −</div>
+    ${S.players.map((p,i)=>{
+      if(!p.name)return '';
+      const auto=Math.max(0,p.hc-low);
+      const manual=S.strokes[i];
+      const diff=manual-auto;
+      const adjusted=diff!==0;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--brd)">
+        <div style="width:8px;height:8px;border-radius:50%;background:${PC[i]};flex-shrink:0"></div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:500;color:${PC[i]}">${p.name}</div>
+          <div style="font-size:10px;color:var(--mut);margin-top:2px">
+            HC ${p.hc}${adjusted?` · auto was ${auto} · <span style="color:var(--gold)">manually adjusted</span>`:''}
+            ${manual===0&&p.hc===low?` · <span style="color:var(--mut)">low man</span>`:''}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button onclick="adjStroke(${i},-1)" style="width:36px;height:36px;border-radius:8px;background:var(--dim);border:1px solid var(--brd);color:var(--txt);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;font-family:Outfit,sans-serif">−</button>
+          <div style="width:36px;text-align:center">
+            <div style="font-size:22px;font-weight:600;color:${manual>0?'var(--txt)':'var(--mut)'};">${manual}</div>
+            <div style="font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em">${manual===1?'stroke':'strokes'}</div>
+          </div>
+          <button onclick="adjStroke(${i},1)" style="width:36px;height:36px;border-radius:8px;background:var(--dim);border:1px solid var(--brd);color:var(--txt);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;font-family:Outfit,sans-serif">+</button>
+        </div>
+      </div>`;
+    }).join('')}
+    <button onclick="syncStrokes();renderSetup()" style="margin-top:12px;width:100%;padding:8px;border-radius:8px;background:none;border:1px solid var(--brd);color:var(--mut);font-size:12px;cursor:pointer;font-family:Outfit,sans-serif">↺ Reset to handicap defaults</button>
+  </div>`:''}
+
+  <button class="btn btn-gold" style="margin-top:8px" onclick="toGames()">Next: Set Bets →</button>
+  <div class="safe"></div>
+</div>`;
+}
+window.adjStroke=(i,d)=>{S.strokes[i]=Math.max(0,(S.strokes[i]||0)+d);renderSetup();};
+function toGames(){
+  if(!S.players.some(p=>p.name)){alert('Enter at least one player name.');return;}
+  nav('games');
+}
+
+// ─── GAMES ───────────────────────────────────────────────────────────────────
+function renderGames(){
+  const el=ensureScr('games');
+  const {nassau,skins,match,stroke,ctp}=S.games;
+  el.innerHTML=`
+<div class="topbar">
+  <button class="back-btn" onclick="nav('setup')">‹</button>
+  <h2>Bets</h2>
+</div>
+<div class="scroll">
+  <p style="font-size:14px;color:var(--mut);margin-bottom:16px">Toggle games on/off and set the dollar amounts.</p>
+
+  <div class="card">
+    <div class="toggle-row" style="padding-top:0">
+      <div class="t-label"><h3>Nassau</h3><p>Front 9 · Back 9 · Overall</p></div>
+      <button class="tog ${nassau.on?'on':''}" onclick="tog('nassau')"></button>
+    </div>
+    ${nassau.on?`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px">
+      <div><div style="font-size:11px;color:var(--mut);margin-bottom:5px;text-align:center">Front $</div><input type="number" min="0" value="${nassau.front}" oninput="S.games.nassau.front=+this.value||0" style="width:100%"></div>
+      <div><div style="font-size:11px;color:var(--mut);margin-bottom:5px;text-align:center">Back $</div><input type="number" min="0" value="${nassau.back}" oninput="S.games.nassau.back=+this.value||0" style="width:100%"></div>
+      <div><div style="font-size:11px;color:var(--mut);margin-bottom:5px;text-align:center">Overall $</div><input type="number" min="0" value="${nassau.overall}" oninput="S.games.nassau.overall=+this.value||0" style="width:100%"></div>
+    </div>`:''}
+  </div>
+
+  <div class="card">
+    <div class="toggle-row" style="padding-top:0">
+      <div class="t-label"><h3>Skins</h3><p>Low net per hole · ties carry over</p></div>
+      <button class="tog ${skins.on?'on':''}" onclick="tog('skins')"></button>
+    </div>
+    ${skins.on?`<div style="display:flex;align-items:center;gap:12px;margin-top:14px">
+      <span style="font-size:14px;color:var(--mut);flex:1">$ per skin</span>
+      <input type="number" min="0" value="${skins.amt}" oninput="S.games.skins.amt=+this.value||0">
+    </div>`:''}
+  </div>
+
+  <div class="card">
+    <div class="toggle-row" style="padding-top:0">
+      <div class="t-label"><h3>Match Play</h3><p>Most holes won takes the pot</p></div>
+      <button class="tog ${match.on?'on':''}" onclick="tog('match')"></button>
+    </div>
+    ${match.on?`<div style="display:flex;align-items:center;gap:12px;margin-top:14px">
+      <span style="font-size:14px;color:var(--mut);flex:1">Pot per player $</span>
+      <input type="number" min="0" value="${match.amt}" oninput="S.games.match.amt=+this.value||0">
+    </div>`:''}
+  </div>
+
+  <div class="card">
+    <div class="toggle-row" style="padding-top:0">
+      <div class="t-label"><h3>Stroke Play</h3><p>Lowest total net score wins</p></div>
+      <button class="tog ${stroke.on?'on':''}" onclick="tog('stroke')"></button>
+    </div>
+    ${stroke.on?`<div style="display:flex;align-items:center;gap:12px;margin-top:14px">
+      <span style="font-size:14px;color:var(--mut);flex:1">Pot per player $</span>
+      <input type="number" min="0" value="${stroke.amt}" oninput="S.games.stroke.amt=+this.value||0">
+    </div>`:''}
+  </div>
+
+  <div class="card">
+    <div class="toggle-row" style="padding-top:0">
+      <div class="t-label"><h3>Closest to Pin</h3><p>Par 3s only · fixed payout each</p></div>
+      <button class="tog ${ctp.on?'on':''}" onclick="tog('ctp')"></button>
+    </div>
+    ${ctp.on?`<div style="display:flex;align-items:center;gap:12px;margin-top:14px">
+      <span style="font-size:14px;color:var(--mut);flex:1">$ per par 3</span>
+      <input type="number" min="0" value="${ctp.amt}" oninput="S.games.ctp.amt=+this.value||0">
+    </div>`:''}
+  </div>
+
+  <button class="btn btn-gold" onclick="teeOff()">⛳ Tee Off</button>
+  <div class="safe"></div>
+</div>`;
+}
+function tog(g){S.games[g].on=!S.games[g].on;renderGames();}
+function teeOff(){nav('course');}
+
+// ─── COURSE SETUP ────────────────────────────────────────────────────────────
+function renderCourse(){
+  const el=ensureScr('course');
+  function parBtn(h,p){
+    const sel=S.holes[h].par===p;
+    return `<button onclick="setPar(${h},${p})" style="width:38px;height:34px;border-radius:8px;border:1px solid ${sel?'var(--gold)':'var(--brd)'};background:${sel?'var(--gold)':'var(--dim)'};color:${sel?'#091510':'var(--mut)'};font-family:Outfit,sans-serif;font-size:14px;font-weight:${sel?'600':'400'};cursor:pointer">${p}</button>`;
+  }
+  function siBtn(h,si){
+    const sel=S.holes[h].si===si;
+    return `<button onclick="setSI(${h},${si})" style="width:28px;height:24px;border-radius:5px;border:1px solid ${sel?'var(--gold)':'var(--brd)'};background:${sel?'rgba(201,168,75,.2)':'transparent'};color:${sel?'var(--gold)':'var(--mut)'};font-size:10px;font-weight:${sel?'600':'400'};cursor:pointer;padding:0">${si}</button>`;
+  }
+  const front=S.holes.slice(0,9).reduce((a,h)=>a+h.par,0);
+  const back=S.holes.slice(9).reduce((a,h)=>a+h.par,0);
+  const scanned=S.holes.some(h=>h._scanned);
+
+  el.innerHTML=`
+<div class="topbar">
+  <button class="back-btn" onclick="nav('games')">‹</button>
+  <h2>Course Setup</h2>
+</div>
+<div class="scroll">
+
+  <div style="background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:14px;margin-bottom:16px">
+    <div style="font-size:13px;font-weight:500;margin-bottom:4px">📷 Scan the course scorecard</div>
+    <div style="font-size:12px;color:var(--mut);margin-bottom:12px;line-height:1.5">Take a photo of the paper scorecard on the cart or tee box — Claude reads every hole's par and stroke index automatically.</div>
+    ${scanned?`<div style="padding:8px 10px;background:rgba(94,196,122,.1);border:1px solid rgba(94,196,122,.25);border-radius:8px;font-size:12px;color:#5ec47a;margin-bottom:10px">✓ Course data scanned — adjust any hole below if needed</div>`:''}
+    <label style="display:block;width:100%">
+      <span class="btn btn-outline" style="display:block;cursor:pointer;padding:12px;text-align:center;font-size:14px">📷 ${scanned?'Re-scan Scorecard':'Scan Scorecard'}</span>
+      <input type="file" accept="image/*" capture="environment" onchange="handleCourseScan(this)" style="display:none">
+    </label>
+  </div>
+
+  <div id="course-scan-status"></div>
+
+  <div style="display:flex;gap:8px;margin-bottom:16px">
+    <button class="btn btn-ghost" style="padding:10px;font-size:12px;flex:1" onclick="setAllPar()">All Par 4 / Reset</button>
+  </div>
+
+  <div style="font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:8px">Front nine — par ${front}</div>
+  ${[0,1,2,3,4,5,6,7,8].map(h=>`
+  <div style="display:flex;align-items:center;padding:7px 0;border-bottom:1px solid var(--brd);gap:8px">
+    <div style="width:22px;font-size:12px;color:var(--mut);font-weight:500;text-align:center;flex-shrink:0">${h+1}</div>
+    <div style="display:flex;gap:4px;flex-shrink:0">${parBtn(h,3)}${parBtn(h,4)}${parBtn(h,5)}</div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+      <div style="font-size:9px;color:var(--mut)">SI</div>
+      <div style="font-size:12px;font-weight:500;color:${S.holes[h].si?'var(--txt)':'var(--mut)'}">${S.holes[h].si||'—'}</div>
+    </div>
+    ${S.holes[h].par===3?`<div style="font-size:9px;color:var(--gold);background:rgba(201,168,75,.12);padding:2px 6px;border-radius:4px;flex-shrink:0">CTP</div>`:'<div style="width:28px"></div>'}
+  </div>`).join('')}
+
+  <div style="font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin:16px 0 8px">Back nine — par ${back}</div>
+  ${[9,10,11,12,13,14,15,16,17].map(h=>`
+  <div style="display:flex;align-items:center;padding:7px 0;border-bottom:1px solid var(--brd);gap:8px">
+    <div style="width:22px;font-size:12px;color:var(--mut);font-weight:500;text-align:center;flex-shrink:0">${h+1}</div>
+    <div style="display:flex;gap:4px;flex-shrink:0">${parBtn(h,3)}${parBtn(h,4)}${parBtn(h,5)}</div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+      <div style="font-size:9px;color:var(--mut)">SI</div>
+      <div style="font-size:12px;font-weight:500;color:${S.holes[h].si?'var(--txt)':'var(--mut)'}">${S.holes[h].si||'—'}</div>
+    </div>
+    ${S.holes[h].par===3?`<div style="font-size:9px;color:var(--gold);background:rgba(201,168,75,.12);padding:2px 6px;border-radius:4px;flex-shrink:0">CTP</div>`:'<div style="width:28px"></div>'}
+  </div>`).join('')}
+
+  <div style="margin-top:14px;padding:12px;background:var(--dim);border-radius:8px;font-size:13px;color:var(--mut);display:flex;gap:16px;justify-content:center">
+    <span>Total par: <strong style="color:var(--txt)">${front+back}</strong></span>
+    <span>Par 3s: <strong style="color:var(--gold)">${S.holes.filter(h=>h.par===3).length}</strong></span>
+    <span>SI set: <strong style="color:${S.holes.every(h=>h.si)?'#5ec47a':'var(--mut)'}">${S.holes.filter(h=>h.si).length}/18</strong></span>
+  </div>
+
+  <button class="btn btn-gold" style="margin-top:16px" onclick="startRound()">⛳ Tee Off</button>
+  <div class="safe"></div>
+</div>`;
+}
+window.setPar=(h,p)=>{S.holes[h].par=p;renderCourse();}
+window.setSI=(h,si)=>{S.holes[h].si=si;renderCourse();}
+function setAllPar(){S.holes=S.holes.map((_,i)=>({par:4,si:SI[i]}));renderCourse();}
+function startRound(){saveRound();nav('scorecard');}
+
+async function handleCourseScan(input){
+  const file=input.files[0];
+  if(!file)return;
+  const statusEl=document.getElementById('course-scan-status');
+  statusEl.innerHTML=`<div style="padding:12px;background:var(--dim);border-radius:8px;text-align:center;font-size:13px;color:var(--mut);margin-bottom:12px"><span class="spin">⛳</span> Reading course scorecard...</div>`;
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    const b64=e.target.result.split(',')[1];
+    const mime=file.type||'image/jpeg';
+    const prompt=`You are reading a golf course scorecard image.
+
+Extract the par and stroke index (SI/handicap) for all 18 holes.
+
+Return ONLY valid JSON, nothing else:
+{
+  "course_name": "name if visible",
+  "confidence": "high" | "medium" | "low",
+  "notes": "any issues reading the card",
+  "holes": [
+    {"hole": 1, "par": 4, "si": 7},
+    {"hole": 2, "par": 4, "si": 11},
+    ...all 18 holes
+  ]
+}
+
+Rules:
+- par must be 3, 4, or 5
+- si (stroke index) must be 1-18, each number used exactly once
+- If SI row is labeled "handicap" or "hdcp" that is the stroke index
+- If you cannot read a value clearly, use null
+- holes array must have exactly 18 entries in order`;
+
+    try{
+      const res=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          model:'claude-sonnet-4-20250514',
+          max_tokens:1000,
+          messages:[{role:'user',content:[
+            {type:'image',source:{type:'base64',media_type:mime,data:b64}},
+            {type:'text',text:prompt}
+          ]}]
+        })
+      });
+      const data=await res.json();
+      const raw=data.content?.find(b=>b.type==='text')?.text||'';
+      const parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());
+      applyCourseScan(parsed,statusEl);
+    }catch(err){
+      statusEl.innerHTML=`<div style="padding:10px 12px;background:rgba(216,80,80,.1);border:1px solid rgba(216,80,80,.3);border-radius:8px;font-size:12px;color:var(--red);margin-bottom:12px">Could not read the scorecard. Try a clearer photo with good lighting, flat on a table.</div>`;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function applyCourseScan(parsed,statusEl){
+  if(!parsed.holes||parsed.holes.length<18){
+    statusEl.innerHTML=`<div style="padding:10px 12px;background:rgba(216,80,80,.1);border:1px solid rgba(216,80,80,.3);border-radius:8px;font-size:12px;color:var(--red);margin-bottom:12px">Couldn't find all 18 holes. Try a better angle or closer shot.</div>`;
+    return;
+  }
+  let applied=0;
+  parsed.holes.forEach((h,i)=>{
+    if(i>=18)return;
+    if(h.par&&[3,4,5].includes(h.par)){S.holes[i].par=h.par;applied++;}
+    if(h.si&&h.si>=1&&h.si<=18)S.holes[i].si=h.si;
+    S.holes[i]._scanned=true;
+  });
+  const warn=parsed.confidence==='low'?`<div style="margin-bottom:8px;padding:8px 10px;background:rgba(201,168,75,.1);border:1px solid rgba(201,168,75,.3);border-radius:8px;font-size:11px;color:var(--gold)">⚠️ Low confidence — please verify holes below</div>`:'';
+  const note=parsed.notes?`<div style="font-size:11px;color:var(--mut);margin-bottom:8px">${parsed.notes}</div>`:'';
+  statusEl.innerHTML=`<div style="padding:10px 12px;background:rgba(94,196,122,.08);border:1px solid rgba(94,196,122,.2);border-radius:8px;margin-bottom:12px">${warn}${note}<div style="font-size:12px;color:#5ec47a">✓ ${parsed.course_name?parsed.course_name+' · ':''}${applied} holes loaded — check any holes that show "—" for SI</div></div>`;
+  renderCourse();
+}
+
+// ─── SCORECARD ───────────────────────────────────────────────────────────────
+function renderScorecard(){
+  const el=ensureScr('scorecard');
+  const done=holesIn();
+  const prog=Math.round((done/18)*100);
+  const activePl=S.players.filter(p=>p.name);
+
+  function nineTots(from,to){
+    return S.players.map((_,pi)=>{
+      if(!S.players[pi].name)return null;
+      let t=0;
+      for(let h=from;h<=to;h++){const g=S.scores[h].g[pi];if(g===null)return '—';t+=g;}
+      return t;
+    });
+  }
+
+  let rows='';
+  for(let h=0;h<18;h++){
+    if(h===9){
+      const tots=nineTots(0,8);
+      rows+=`<div class="nine-div">
+        <div class="nine-lbl">Out</div>
+        ${tots.map((t,i)=>S.players[i].name?`<div class="nine-tot" style="color:${PC[i]}">${t}</div>`:'<div></div>').join('')}
+      </div>`;
+    }
+    const hole=S.holes[h];
+    const sc=S.scores[h];
+    const done=sc.g.every(g=>g!==null);
+    const isp3=hole.par===3;
+    const cells=S.players.map((p,pi)=>{
+      if(!p.name)return '<div></div>';
+      const g=sc.g[pi];
+      const d=g!==null?g-hole.par:null;
+      const cls=diffCls(d);
+      const net=getNet(h,pi);
+      const showCTP=isp3&&S.games.ctp.on&&sc.ctp===pi&&g!==null;
+      return `<div class="score-cell ${cls}" style="${g!==null?`background:${PBG[pi]}`:''}">
+        <span class="g" style="color:${g!==null?PC[pi]:'var(--dim)'}">${g!==null?g:'—'}</span>
+        ${g!==null&&p.hc>0?`<span class="nl">net ${net}</span>`:''}
+        ${showCTP?`<span class="ctpb">CTP</span>`:''}
+      </div>`;
+    }).join('');
+    rows+=`<div class="hole-row ${isp3?'par3':''}" onclick="openHole(${h})">
+      <div class="h-num">${h+1}</div>
+      <div class="h-par">${hole.par}</div>
+      ${cells}
+    </div>`;
+  }
+
+  const backTots=nineTots(9,17);
+  const allTots=nineTots(0,17);
+
+  el.innerHTML=`
+<div class="topbar">
+  <button class="back-btn" onclick="nav('home')">‹</button>
+  <h2>Scorecard</h2>
+  <button class="topbar-btn" onclick="openScan()" style="margin-right:6px">📷 Scan</button>
+  <button class="topbar-btn" onclick="nav('live')">Totals</button>
+</div>
+<div class="prog-bar"><div class="prog-fill" style="width:${prog}%"></div></div>
+<div class="sc-head">
+  <div class="ch">#</div><div class="ch">Par</div>
+  ${S.players.map((p,i)=>p.name?`<div class="ph"><div class="ph-dot" style="background:${PC[i]}"></div><span>${p.name}</span></div>`:'<div></div>').join('')}
+</div>
+<div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch">
+  ${rows}
+  <div class="nine-div" style="border-top:2px solid var(--brd)">
+    <div class="nine-lbl">In</div>
+    ${backTots.map((t,i)=>S.players[i].name?`<div class="nine-tot" style="color:${PC[i]}">${t}</div>`:'<div></div>').join('')}
+  </div>
+  <div class="nine-div" style="background:var(--card)">
+    <div class="nine-lbl" style="color:var(--gold2)">Total</div>
+    ${allTots.map((t,i)=>S.players[i].name?`<div class="nine-tot" style="color:${PC[i]};font-size:14px;font-weight:700">${t}</div>`:'<div></div>').join('')}
+  </div>
+</div>
+${done===18
+  ?`<div style="padding:16px"><button class="btn btn-gold" onclick="nav('summary')">Finish Round →</button></div>`
+  :`<div style="padding:12px;text-align:center;font-size:13px;color:var(--mut)">${done}/18 holes complete · tap any hole to enter scores</div>`}
+<div class="safe"></div>`;
+}
+
+// ─── SCORE ENTRY SHEET ───────────────────────────────────────────────────────
+function openHole(hi){
+  const hole=S.holes[hi];
+  const sc=S.scores[hi];
+  const isp3=hole.par===3;
+  const wg=[...sc.g].map((g,pi)=>g===null?(S.players[pi].name?hole.par:null):g);
+  let wctp=sc.ctp;
+
+  function draw(){
+    document.getElementById('sheet').innerHTML=`
+<div class="sheet-handle"></div>
+<div class="sheet-title">Hole ${hi+1}</div>
+<div class="sheet-sub">Par ${hole.par} &nbsp;·&nbsp; Stroke Index ${hole.si}${isp3?' &nbsp;·&nbsp; Par 3':''}</div>
+${S.players.map((p,pi)=>{
+  if(!p.name)return '';
+  const strokes=hcStrokes(playingHc(pi),hole.si);
+  const net=wg[pi]!==null?wg[pi]-strokes:null;
+  const diff=wg[pi]!==null?wg[pi]-hole.par:null;
+  const col=diff===null?'var(--txt)':diff<0?'var(--gold2)':diff>0?'var(--red)':'var(--txt)';
+  return `<div class="psr">
+    <div style="width:10px;height:10px;border-radius:50%;background:${PC[pi]};flex-shrink:0"></div>
+    <div class="psr-info">
+      <div class="psr-name">${p.name}</div>
+      <div class="psr-hc">${strokes>0?`Gets ${strokes} stroke${strokes>1?'s':''} (HC diff ${playingHc(pi)})`:playingHc(pi)===0?'Low man — no strokes':'No stroke this hole'}</div>
+      ${net!==null?`<div style="font-size:10px;color:var(--mut);margin-top:1px">net ${net}</div>`:''}
+    </div>
+    <div class="stepper">
+      <button class="step-btn" onclick="adj(${pi},-1)">−</button>
+      <div class="step-val" style="color:${col}">${wg[pi]!==null?wg[pi]:'—'}</div>
+      <button class="step-btn" onclick="adj(${pi},1)">+</button>
+    </div>
+  </div>`;
+}).join('')}
+${isp3&&S.games.ctp.on?`<div class="ctp-sec">
+  <h4>⛳ Closest to Pin</h4>
+  <div class="ctp-opts">
+    ${S.players.map((p,pi)=>p.name?`<button class="ctp-opt ${wctp===pi?'sel':''}" onclick="setCTP(${pi})">${p.name}</button>`:'').join('')}
+    <button class="ctp-opt ${wctp===null?'sel':''}" onclick="setCTP(-1)">None yet</button>
+  </div>
+</div>`:''}
+<div style="padding:16px 20px">
+  <button class="btn btn-gold" onclick="saveHole(${hi})">Save Hole ${hi+1}</button>
+  <button class="btn btn-ghost" onclick="closeSheet()">Cancel</button>
+</div>
+<div class="safe"></div>`;
+  }
+
+  window.adj=(pi,d)=>{wg[pi]=Math.max(1,(wg[pi]||hole.par)+d);draw();};
+  window.setCTP=(pi)=>{wctp=pi===-1?null:pi;draw();};
+  window.saveHole=(hi)=>{
+    S.scores[hi].g=[...wg];
+    S.scores[hi].ctp=wctp;
+    saveRound();closeSheet();renderScorecard();
+  };
+
+  draw();
+  document.getElementById('overlay').classList.add('open');
+}
+function closeSheet(e){
+  if(e&&e.target!==e.currentTarget)return;
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// ─── LIVE TOTALS ─────────────────────────────────────────────────────────────
+function renderLive(){
+  const el=ensureScr('live');
+  const done=holesIn();
+
+  function lbBlock(nets,label,amt){
+    const valid=!nets.some(x=>x===null);
+    const rows=nets.map((n,i)=>({n,i})).filter(x=>x.n!==null&&S.players[x.i].name).sort((a,b)=>a.n-b.n);
+    if(!rows.length)return `<div style="color:var(--mut);font-size:13px;padding:6px 0">No scores yet</div>`;
+    const mn=rows[0].n;
+    return rows.map((r,rank)=>`<div class="lb-row">
+      <div class="lb-pos">${rank+1}</div>
+      <div class="lb-dot" style="background:${PC[r.i]}"></div>
+      <div class="lb-name">${pn(r.i)}</div>
+      <div class="lb-val ${valid&&r.n===mn?'pos':'neu'}">${r.n} net</div>
+    </div>`).join('');
+  }
+
+  const fNets=segNets(0,8);
+  const bNets=segNets(9,17);
+  const oNets=segNets(0,17);
+  const skins=skinsCalc();
+  const sw=[0,0,0,0];skins.forEach(r=>{if(r.w!==null)sw[r.w]+=r.pot;});
+  const carrying=skins.filter(r=>!r.pending&&r.w===null).length;
+  const mw=mpWins();
+  const ctpHoles=par3s();
+  const bal=balances();
+
+  el.innerHTML=`
+<div class="topbar">
+  <button class="back-btn" onclick="nav('scorecard')">‹</button>
+  <h2>Live Totals</h2>
+</div>
+<div class="scroll">
+  <p style="font-size:13px;color:var(--mut);margin-bottom:16px">${done}/18 holes complete</p>
+
+  ${S.games.nassau.on?`<div class="card">
+    <div class="lb-game">Nassau</div>
+    ${S.games.nassau.front?`<div class="lb-seg">Front 9 — $${S.games.nassau.front}</div>${lbBlock(fNets,'front',S.games.nassau.front)}<div class="divider"></div>`:''}
+    ${S.games.nassau.back?`<div class="lb-seg">Back 9 — $${S.games.nassau.back}</div>${lbBlock(bNets,'back',S.games.nassau.back)}<div class="divider"></div>`:''}
+    ${S.games.nassau.overall?`<div class="lb-seg">Overall — $${S.games.nassau.overall}</div>${lbBlock(oNets,'overall',S.games.nassau.overall)}`:''}
+  </div>`:''}
+
+  ${S.games.skins.on?`<div class="card">
+    <div class="lb-game">Skins — $${S.games.skins.amt} each</div>
+    ${sw.map((w,i)=>S.players[i].name?`<div class="lb-row">
+      <div class="lb-dot" style="background:${PC[i]}"></div>
+      <div class="lb-name">${pn(i)}</div>
+      <div class="lb-val ${w>0?'pos':'neu'}">${w} skin${w!==1?'s':''} · $${w*S.games.skins.amt}</div>
+    </div>`:'').join('')}
+    ${carrying>0?`<div style="margin-top:8px;padding:8px 10px;background:rgba(201,168,75,.1);border-radius:8px;font-size:13px;color:var(--gold)">${carrying} skin${carrying>1?'s':''} carrying over</div>`:''}
+  </div>`:''}
+
+  ${S.games.match.on?`<div class="card">
+    <div class="lb-game">Match Play — $${S.games.match.amt} pot</div>
+    ${[...S.players.map((p,i)=>({i,w:mw[i]}))].filter(x=>S.players[x.i].name).sort((a,b)=>b.w-a.w).map((p,rank)=>`
+    <div class="lb-row">
+      <div class="lb-pos">${rank+1}</div>
+      <div class="lb-dot" style="background:${PC[p.i]}"></div>
+      <div class="lb-name">${pn(p.i)}</div>
+      <div class="lb-val ${rank===0&&p.w>0?'pos':'neu'}">${p.w} hole${p.w!==1?'s':''}</div>
+    </div>`).join('')}
+  </div>`:''}
+
+  ${S.games.ctp.on?`<div class="card">
+    <div class="lb-game">Closest to Pin — $${S.games.ctp.amt} per par 3</div>
+    ${ctpHoles.map(h=>{const w=S.scores[h].ctp;return `<div class="lb-row">
+      <div class="lb-pos">${h+1}</div>
+      <div class="lb-name">Hole ${h+1}</div>
+      <div class="lb-val ${w!==null?'pos':'neu'}">${w!==null?pn(w):'TBD'}</div>
+    </div>`;}).join('')}
+  </div>`:''}
+
+  <div class="card">
+    <div class="lb-game">Net Balances (running)</div>
+    ${bal.map((b,i)=>S.players[i].name?`<div class="lb-row">
+      <div class="lb-dot" style="background:${PC[i]}"></div>
+      <div class="lb-name">${pn(i)}</div>
+      <div class="lb-val ${b>0?'pos':b<0?'neg':'neu'}">${b>0?'+':''}$${Math.abs(Math.round(b))}</div>
+    </div>`:'').join('')}
+  </div>
+
+  <div class="safe"></div>
+</div>`;
+}
+
+// ─── SUMMARY (now routes straight to settlement) ──────────────────────────────
+function renderSummary(){nav('settlement');}
+
+// ─── SETTLEMENT — end of round reveal ────────────────────────────────────────
+function renderSettlement(){
+  const el=ensureScr('settlement');
+  const bal=balances();
+  const txns=simplify([...bal]);
+  const activePl=S.players.filter(p=>p.name);
+  const date=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+
+  // Build winners list
+  const winners=[];
+  if(S.games.nassau.on){
+    [{nets:segNets(0,8),label:'Nassau · Front 9',amt:S.games.nassau.front},
+     {nets:segNets(9,17),label:'Nassau · Back 9',amt:S.games.nassau.back},
+     {nets:segNets(0,17),label:'Nassau · Overall',amt:S.games.nassau.overall}
+    ].forEach(({nets,label,amt})=>{
+      if(nets.some(x=>x===null)||!amt)return;
+      const mn=Math.min(...nets.filter(x=>x!==null));
+      const ws=nets.reduce((a,x,i)=>x===mn&&S.players[i].name?[...a,i]:a,[]);
+      if(ws.length===1)winners.push({game:label,name:pn(ws[0]),earn:`+$${amt*(activePl.length-1)}`,i:ws[0],push:false});
+      else if(ws.length>1)winners.push({game:label,name:'Push — tied',earn:'$0',i:-1,push:true});
+    });
+  }
+  if(S.games.skins.on){
+    const sw=[0,0,0,0];skinsCalc().forEach(r=>{if(r.w!==null)sw[r.w]+=r.pot;});
+    const tot=sw.reduce((a,b)=>a+b,0);
+    if(tot>0){
+      const mx=Math.max(...sw);
+      const ws=sw.reduce((a,w,i)=>w===mx&&S.players[i].name?[...a,i]:a,[]);
+      if(ws.length===1)winners.push({game:`Skins · ${sw[ws[0]]} skin${sw[ws[0]]>1?'s':''}`,name:pn(ws[0]),earn:`+$${sw[ws[0]]*S.games.skins.amt}`,i:ws[0],push:false});
+    }
+  }
+  if(S.games.match.on){
+    const mw=mpWins();const mx=Math.max(...mw);
+    const ws=mw.reduce((a,w,i)=>w===mx&&S.players[i].name?[...a,i]:a,[]);
+    if(ws.length===1)winners.push({game:`Match Play · ${mw[ws[0]]} holes`,name:pn(ws[0]),earn:`+$${S.games.match.amt*(activePl.length-1)}`,i:ws[0],push:false});
+  }
+  if(S.games.stroke.on){
+    const tots=segNets(0,17);
+    if(!tots.some(x=>x===null)){const mn=Math.min(...tots.filter(x=>x!==null));
+    const ws=tots.reduce((a,x,i)=>x===mn&&S.players[i].name?[...a,i]:a,[]);
+    if(ws.length===1)winners.push({game:`Stroke Play · net ${tots[ws[0]]}`,name:pn(ws[0]),earn:`+$${S.games.stroke.amt*(activePl.length-1)}`,i:ws[0],push:false});}
+  }
+  if(S.games.ctp.on){
+    const ctpWins={};
+    par3s().forEach(h=>{if(S.scores[h].ctp!==null){const w=S.scores[h].ctp;ctpWins[w]=(ctpWins[w]||0)+1;}});
+    Object.entries(ctpWins).forEach(([wi,count])=>{
+      winners.push({game:`Closest to Pin · ${count} hole${count>1?'s':''}`,name:pn(+wi),earn:`+$${S.games.ctp.amt*(activePl.length-1)*count}`,i:+wi,push:false});
+    });
+  }
+
+  // Balance sorted biggest winner first
+  const balSorted=[...bal.map((b,i)=>({b,i}))].filter(x=>S.players[x.i].name).sort((a,b)=>b.b-a.b);
+
+  el.innerHTML=`
+<div style="background:linear-gradient(180deg,#0f2a1a 0%,#091510 60%);min-height:100vh;display:flex;flex-direction:column">
+
+  <div style="height:3px;background:linear-gradient(90deg,#e0835a,#c9a84b,#5ec47a,#5a9ed6,#a07dd4)"></div>
+
+  <div style="padding:36px 20px 20px;text-align:center;border-bottom:1px solid #1a3525">
+    <div style="font-size:52px;line-height:1;margin-bottom:12px">⛳</div>
+    <div style="font-family:'Cormorant Garamond',serif;font-size:32px;color:var(--gold);font-weight:700;line-height:1;margin-bottom:4px">Round Complete</div>
+    <div style="font-size:12px;color:var(--mut);margin-bottom:16px">${date}</div>
+    <div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap">
+      ${S.players.map((p,i)=>p.name?`<div style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:4px 10px">
+        <div style="width:6px;height:6px;border-radius:50%;background:${PC[i]}"></div>
+        <span style="font-size:11px;color:var(--txt)">${p.name}</span>
+      </div>`:'').join('')}
+    </div>
+  </div>
+
+  <div style="padding:16px 20px;border-bottom:1px solid #1a3525">
+    <div style="font-size:9px;color:var(--gold);text-transform:uppercase;letter-spacing:.09em;font-weight:600;margin-bottom:10px">Game winners</div>
+    ${winners.length===0?`<div style="font-size:13px;color:var(--mut);text-align:center;padding:10px">No completed games</div>`:''}
+    ${winners.map(w=>w.push
+      ?`<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(94,196,122,.06);border:1px solid rgba(94,196,122,.15);border-radius:10px;margin-bottom:6px">
+          <div style="font-size:16px;width:24px;text-align:center">🤝</div>
+          <div style="flex:1">
+            <div style="font-size:9px;color:#5ec47a;text-transform:uppercase;letter-spacing:.05em;opacity:.8;margin-bottom:2px">${w.game}</div>
+            <div style="font-size:13px;color:#5ec47a">${w.name}</div>
+          </div>
+          <div style="font-size:12px;color:#5ec47a">$0</div>
+        </div>`
+      :`<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--card);border-radius:10px;margin-bottom:6px">
+          <div style="font-size:16px;width:24px;text-align:center">🏆</div>
+          <div style="flex:1">
+            <div style="font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${w.game}</div>
+            <div style="font-size:13px;font-weight:600;color:${PC[w.i]}">${w.name}</div>
+          </div>
+          <div style="font-size:13px;font-weight:600;color:var(--gold)">${w.earn}</div>
+        </div>`
+    ).join('')}
+  </div>
+
+  <div style="padding:16px 20px;border-bottom:1px solid #1a3525">
+    <div style="font-size:9px;color:var(--gold);text-transform:uppercase;letter-spacing:.09em;font-weight:600;margin-bottom:10px">Net balances</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      ${balSorted.map(({b,i})=>`
+      <div style="background:var(--card);border-radius:10px;padding:10px 12px;border-left:3px solid ${b>=0?'#5ec47a':'#d85050'}">
+        <div style="font-size:12px;font-weight:600;color:${PC[i]};margin-bottom:4px">${pn(i)}</div>
+        <div style="font-size:22px;font-weight:600;color:${b>0?'#5ec47a':b<0?'#d85050':'var(--mut)'};">${b>0?'+':''}$${Math.abs(Math.round(b))}</div>
+        <div style="font-size:9px;color:var(--mut);margin-top:2px;text-transform:uppercase;letter-spacing:.05em">${b>0?'Collects':b<0?'Owes':'Even'}</div>
+      </div>`).join('')}
+    </div>
+  </div>
+
+  <div style="padding:16px 20px;flex:1">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:9px;color:var(--gold);text-transform:uppercase;letter-spacing:.09em;font-weight:600">Settle up</div>
+      <div style="font-size:11px;color:var(--mut);background:var(--dim);padding:3px 8px;border-radius:5px">${txns.length} payment${txns.length!==1?'s':''}</div>
+    </div>
+    ${txns.length===0
+      ?`<div style="text-align:center;padding:24px;background:var(--card);border-radius:12px">
+          <div style="font-size:40px;margin-bottom:8px">🤝</div>
+          <div style="font-size:14px;color:var(--mut)">Everyone's even!</div>
+        </div>`
+      :txns.map(t=>`
+      <div style="display:flex;align-items:stretch;margin-bottom:8px;border-radius:12px;overflow:hidden;border:1px solid var(--brd)">
+        <div style="flex:1;padding:12px 14px;background:var(--card)">
+          <div style="font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Pays</div>
+          <div style="font-size:15px;font-weight:600;color:${PC[t.from]}">${pn(t.from)}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 10px;background:var(--card);gap:3px">
+          <div style="font-size:12px;color:var(--mut)">→</div>
+          <div style="font-size:22px;font-weight:700;color:var(--gold);line-height:1">$${t.amt}</div>
+        </div>
+        <div style="flex:1;padding:12px 14px;background:#1f3828;text-align:right">
+          <div style="font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">To</div>
+          <div style="font-size:15px;font-weight:600;color:${PC[t.to]}">${pn(t.to)}</div>
+        </div>
+      </div>`).join('')}
+  </div>
+
+  <div style="padding:0 20px 16px">
+    <button class="btn btn-gold" onclick="done()" style="font-size:15px">✓ Everyone's Paid — Save Round</button>
+  </div>
+  <div class="safe"></div>
+</div>`;
+}
+function done(){
+  const bal=balances();
+  pushHistory({
+    date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
+    players:S.players.map(p=>p.name).filter(Boolean),
+    games:Object.entries(S.games).filter(([,v])=>v.on).map(([k])=>k),
+    bal:[...bal],txns:simplify([...bal])
+  });
+  clearRound();
+  S.players=[{name:'',hc:0},{name:'',hc:0},{name:'',hc:0},{name:'',hc:0}];
+  S.scores=blank18();
+  nav('home');
+}
+
+// ─── HISTORY ─────────────────────────────────────────────────────────────────
+function renderHistory(){
+  const el=ensureScr('history');
+  const gname={nassau:'Nassau',skins:'Skins',match:'Match',stroke:'Stroke',ctp:'CTP'};
+  el.innerHTML=`
+<div class="topbar">
+  <button class="back-btn" onclick="nav('home')">‹</button>
+  <h2>Past Rounds</h2>
+</div>
+<div class="scroll">
+  ${!S.history.length?`<div class="empty-state"><div class="ei">📋</div><p>No rounds saved yet.<br>Play your first round and it'll show up here.</p></div>`:''}
+  ${S.history.map((r,ri)=>`<div class="hist-item">
+    <div class="hist-date">${r.date}</div>
+    <div class="hist-names">${r.players.join(' · ')}</div>
+    <div class="hist-tags">${r.games.map(g=>`<span class="hist-tag">${gname[g]||g}</span>`).join('')}</div>
+    <div class="hist-bals">${r.bal.map((b,i)=>r.players[i]?`
+      <span style="font-size:13px">
+        <span style="color:${PC[i]}">${r.players[i]}</span>
+        <span style="color:${b>0?'var(--gold)':b<0?'var(--red)':'var(--mut)'};margin-left:4px">${b>0?'+':''}$${Math.abs(Math.round(b))}</span>
+      </span>`:'').join('')}</div>
+    ${r.txns&&r.txns.length?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--brd)">
+      ${r.txns.map(t=>`<div style="font-size:12px;color:var(--mut);margin-bottom:3px">
+        <span style="color:${PC[t.from]}">${r.players[t.from]}</span> pays
+        <span style="color:${PC[t.to]}">${r.players[t.to]}</span>
+        <span style="color:var(--gold);font-weight:600"> $${t.amt}</span>
+      </div>`).join('')}
+    </div>`:''}
+  </div>`).join('')}
+  ${S.history.length?`<button class="btn btn-danger" style="margin-top:8px" onclick="clearHistory()">Clear All History</button>`:''}
+  <div class="safe"></div>
+</div>`;
+}
+function clearHistory(){
+  if(!confirm('Delete all round history?'))return;
+  S.history=[];
+  try{localStorage.removeItem('fb_h');}catch(e){}
+  renderHistory();
+}
+
+// ─── SCAN SCORECARD ──────────────────────────────────────────────────────────
+function openScan(){
+  document.getElementById('scan-overlay').classList.add('open');
+  resetScanUI();
+}
+function closeScan(){
+  document.getElementById('scan-overlay').classList.remove('open');
+}
+function resetScanUI(){
+  document.getElementById('scan-preview').style.display='none';
+  document.getElementById('scan-preview').src='';
+  document.getElementById('scan-result').innerHTML='';
+  document.getElementById('scan-action').innerHTML=`
+    <label style="display:block;width:100%;margin-bottom:10px">
+      <span class="btn btn-gold" style="display:block;cursor:pointer">📷 Take Photo / Choose Image</span>
+      <input type="file" accept="image/*" capture="environment" onchange="handleScanFile(this)" style="display:none">
+    </label>
+    <button class="btn btn-ghost" onclick="closeScan()">Cancel</button>`;
+}
+
+function handleScanFile(input){
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const b64=e.target.result.split(',')[1];
+    const mime=file.type||'image/jpeg';
+    const prev=document.getElementById('scan-preview');
+    prev.src=e.target.result;
+    prev.style.display='block';
+    runScan(b64,mime);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function runScan(b64,mime){
+  document.getElementById('scan-result').innerHTML='';
+  document.getElementById('scan-action').innerHTML=`
+    <div style="padding:16px;color:var(--mut);font-size:14px">
+      <span class="spin">⛳</span> Reading scorecard...
+    </div>`;
+
+  const activePlayers=S.players.filter(p=>p.name).map(p=>p.name);
+  const prompt=`You are reading a golf scorecard photo. The players in this round are: ${activePlayers.join(', ')}.
+
+Extract the gross (actual) score for each player on each of the 18 holes.
+
+Return ONLY valid JSON in this exact format, nothing else:
+{
+  "confidence": "high" | "medium" | "low",
+  "notes": "any issues or warnings about the image",
+  "players": [
+    {
+      "name": "player name as it appears",
+      "matched": "matched player name from the list above",
+      "scores": [hole1, hole2, ..., hole18]
+    }
+  ]
+}
+
+Rules:
+- scores must be integers, use null if a hole score is unreadable
+- Only include players you can actually see on the scorecard
+- matched must be one of: ${activePlayers.join(', ')}
+- If you can't read the scorecard clearly, set confidence to "low" and explain in notes`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{
+          role:'user',
+          content:[
+            {type:'image',source:{type:'base64',media_type:mime,data:b64}},
+            {type:'text',text:prompt}
+          ]
+        }]
+      })
+    });
+    const data=await res.json();
+    const raw=data.content?.find(b=>b.type==='text')?.text||'';
+    const clean=raw.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(clean);
+    showScanResult(parsed);
+  }catch(err){
+    document.getElementById('scan-result').innerHTML=`<div style="color:var(--red);font-size:14px;padding:8px 0">Could not read the scorecard. Try a clearer photo with better lighting.</div>`;
+    document.getElementById('scan-action').innerHTML=`
+      <label style="display:block;width:100%;margin-bottom:10px">
+        <span class="btn btn-outline" style="display:block;cursor:pointer">Try Another Photo</span>
+        <input type="file" accept="image/*" capture="environment" onchange="handleScanFile(this)" style="display:none">
+      </label>
+      <button class="btn btn-ghost" onclick="closeScan()">Cancel</button>`;
+  }
+}
+
+function showScanResult(parsed){
+  const activePi=S.players.reduce((m,p,i)=>{if(p.name)m[p.name]=i;return m},{});
+  const low=parsed.confidence==='low';
+  const resultEl=document.getElementById('scan-result');
+
+  let html='';
+  if(parsed.notes){
+    html+=`<div class="scan-warn">ℹ️ ${parsed.notes}</div>`;
+  }
+  if(low){
+    html+=`<div class="scan-warn">⚠️ Low confidence — please verify all scores before applying.</div>`;
+  }
+
+  parsed.players.forEach(pl=>{
+    const pi=activePi[pl.matched];
+    if(pi===undefined)return;
+    const color=PC[pi];
+    const valid=pl.scores.filter(s=>s!==null).length;
+    html+=`<div class="scan-player-result">
+      <div class="scan-player-name" style="color:${color}">${pl.name} → ${pn(pi)}</div>
+      <div class="scan-scores-row">
+        ${pl.scores.map((s,hi)=>`<span class="scan-score-chip" style="${s===null?'opacity:.4':''}">${hi+1}:${s!==null?s:'?'}</span>`).join('')}
+      </div>
+      <div style="font-size:11px;color:var(--mut);margin-top:4px">${valid}/18 holes read</div>
+    </div>`;
+  });
+
+  resultEl.innerHTML=html||'<div style="color:var(--mut);font-size:14px">No player scores detected.</div>';
+
+  // Pending data to apply
+  const toApply=parsed.players.filter(pl=>activePi[pl.matched]!==undefined);
+
+  document.getElementById('scan-action').innerHTML=`
+    ${toApply.length?`<button class="btn btn-gold" onclick="applyScan(${JSON.stringify(toApply).replace(/"/g,'&quot;')})">Apply Scores to Scorecard</button>`:''}
+    <label style="display:block;width:100%;margin-top:10px">
+      <span class="btn btn-outline" style="display:block;cursor:pointer">Try Another Photo</span>
+      <input type="file" accept="image/*" capture="environment" onchange="handleScanFile(this)" style="display:none">
+    </label>
+    <button class="btn btn-ghost" onclick="closeScan()">Cancel</button>`;
+}
+
+function applyScan(players){
+  const activePi=S.players.reduce((m,p,i)=>{if(p.name)m[p.name]=i;return m},{});
+  players.forEach(pl=>{
+    const pi=activePi[pl.matched];
+    if(pi===undefined)return;
+    pl.scores.forEach((s,hi)=>{
+      if(s!==null&&Number.isInteger(s)&&s>0&&s<20){
+        S.scores[hi].g[pi]=s;
+      }
+    });
+  });
+  saveRound();
+  closeScan();
+  renderScorecard();
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+load();
+render();
+</script>
+</body>
+</html>
