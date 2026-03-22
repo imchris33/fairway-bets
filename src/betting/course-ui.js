@@ -3,6 +3,9 @@ import { SI } from '../constants.js'
 import { ensureScr } from '../utils.js'
 import { nav, registerScreen } from '../router.js'
 
+let _searchTimer = null;
+let _courseName = '';
+
 function renderCourse(){
   const el=ensureScr('course');
   function parBtn(h,p){
@@ -12,6 +15,7 @@ function renderCourse(){
   const front=S.holes.slice(0,9).reduce((a,h)=>a+h.par,0);
   const back=S.holes.slice(9).reduce((a,h)=>a+h.par,0);
   const scanned=S.holes.some(h=>h._scanned);
+  const courseLoaded=S.holes.some(h=>h._fromApi);
 
   el.innerHTML=`
 <div class="topbar">
@@ -20,12 +24,22 @@ function renderCourse(){
 </div>
 <div class="scroll">
 
-  <div style="background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:14px;margin-bottom:16px">
-    <div style="font-size:13px;font-weight:500;margin-bottom:4px">📷 Scan the course scorecard</div>
-    <div style="font-size:12px;color:var(--mut);margin-bottom:12px;line-height:1.5">Take a photo of the paper scorecard on the cart or tee box — Claude reads every hole's par and stroke index automatically.</div>
-    ${scanned?`<div style="padding:8px 10px;background:rgba(94,196,122,.1);border:1px solid rgba(94,196,122,.25);border-radius:8px;font-size:12px;color:#5ec47a;margin-bottom:10px">✓ Course data scanned — adjust any hole below if needed</div>`:''}
+  <!-- Course Search -->
+  <div style="background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:14px;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:500;margin-bottom:4px">🔍 Find your course</div>
+    <div style="font-size:12px;color:var(--mut);margin-bottom:10px;line-height:1.5">Search by name — pars and stroke indexes load automatically.</div>
+    ${courseLoaded?`<div style="padding:8px 10px;background:rgba(94,196,122,.1);border:1px solid rgba(94,196,122,.25);border-radius:8px;font-size:12px;color:#5ec47a;margin-bottom:10px">✓ ${_courseName||'Course'} loaded — adjust any hole below if needed</div>`:''}
+    <input type="text" id="course-search" placeholder="e.g. Pebble Beach, Augusta National..." style="width:100%" oninput="courseSearch(this.value)">
+    <div id="course-results"></div>
+  </div>
+
+  <!-- AI Scan fallback -->
+  <div style="background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:14px;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:500;margin-bottom:4px">📷 Or scan the scorecard</div>
+    <div style="font-size:12px;color:var(--mut);margin-bottom:10px;line-height:1.5">Take a photo of the paper scorecard — Claude reads pars and stroke indexes.</div>
+    ${scanned?`<div style="padding:8px 10px;background:rgba(94,196,122,.1);border:1px solid rgba(94,196,122,.25);border-radius:8px;font-size:12px;color:#5ec47a;margin-bottom:10px">✓ Course data scanned</div>`:''}
     <label style="display:block;width:100%">
-      <span class="btn btn-outline" style="display:block;cursor:pointer;padding:12px;text-align:center;font-size:14px">📷 ${scanned?'Re-scan Scorecard':'Scan Scorecard'}</span>
+      <span class="btn btn-outline" style="display:block;cursor:pointer;padding:10px;text-align:center;font-size:13px">📷 ${scanned?'Re-scan':'Scan Scorecard'}</span>
       <input type="file" accept="image/*" capture="environment" onchange="handleCourseScan(this)" style="display:none">
     </label>
   </div>
@@ -70,11 +84,86 @@ function renderCourse(){
   <div class="safe"></div>
 </div>`;
 }
+
+// ─── Course Search ─────────────────────────────────────────────
+window.courseSearch=function(query){
+  clearTimeout(_searchTimer);
+  const container=document.getElementById('course-results');
+  if(!container) return;
+  if(query.trim().length<2){
+    container.innerHTML='';
+    return;
+  }
+  container.innerHTML=`<div style="padding:10px;color:var(--mut);font-size:13px"><span class="spin">⛳</span> Searching...</div>`;
+  _searchTimer=setTimeout(async()=>{
+    try{
+      const res=await fetch(`/api/courses?search=${encodeURIComponent(query.trim())}`);
+      const data=await res.json();
+      const courses=data.courses||[];
+      if(!courses.length){
+        container.innerHTML=`<div style="padding:10px;color:var(--mut);font-size:13px">No courses found. Try a different name or use scan/manual entry below.</div>`;
+        return;
+      }
+      // Filter to courses that have tee data with holes
+      container.innerHTML=courses.slice(0,8).map(c=>{
+        const loc=c.location;
+        const city=loc?[loc.city,loc.state].filter(Boolean).join(', '):'';
+        const hasTees=c.tees&&(c.tees.male?.length||c.tees.female?.length);
+        return `<div onclick="selectCourse(${c.id})" style="padding:10px 0;border-bottom:1px solid var(--brd);cursor:pointer;${hasTees?'':'opacity:.5'}">
+          <div style="font-size:14px;font-weight:500">${c.course_name||c.club_name}</div>
+          <div style="font-size:11px;color:var(--mut)">${city}${hasTees?'':' · No scorecard data'}</div>
+        </div>`;
+      }).join('');
+    }catch(e){
+      container.innerHTML=`<div style="padding:10px;color:var(--red);font-size:13px">Search failed. Check your connection.</div>`;
+    }
+  },400);
+};
+
+window.selectCourse=async function(courseId){
+  const container=document.getElementById('course-results');
+  if(container) container.innerHTML=`<div style="padding:10px;color:var(--mut);font-size:13px"><span class="spin">⛳</span> Loading course...</div>`;
+  try{
+    const res=await fetch(`/api/courses?id=${courseId}`);
+    const data=await res.json();
+    const course=data.course;
+    if(!course){throw new Error('Course not found');}
+
+    // Find the best tee set with holes data
+    const allTees=[...(course.tees?.male||[]),...(course.tees?.female||[])];
+    // Prefer men's tees, pick the first one with 18 holes
+    const tee=allTees.find(t=>t.holes?.length>=18)||allTees.find(t=>t.holes?.length>0);
+    if(!tee||!tee.holes?.length){
+      if(container) container.innerHTML=`<div style="padding:10px;color:var(--red);font-size:13px">This course doesn't have scorecard data. Use scan or manual entry.</div>`;
+      return;
+    }
+
+    // Apply holes data
+    tee.holes.forEach((h,i)=>{
+      if(i>=18) return;
+      if(h.par&&[3,4,5].includes(h.par)) S.holes[i].par=h.par;
+      if(h.handicap&&h.handicap>=1&&h.handicap<=18) S.holes[i].si=h.handicap;
+      S.holes[i]._fromApi=true;
+    });
+
+    _courseName=course.course_name||course.club_name||'Course';
+    renderCourse();
+  }catch(e){
+    if(container) container.innerHTML=`<div style="padding:10px;color:var(--red);font-size:13px">Failed to load course data.</div>`;
+  }
+};
+
+// ─── Manual controls ───────────────────────────────────────────
 window.setPar=(h,p)=>{S.holes[h].par=p;renderCourse();};
 window.setSI=(h,si)=>{S.holes[h].si=si;renderCourse();};
-window.setAllPar=function(){S.holes=S.holes.map((_,i)=>({par:4,si:SI[i]}));renderCourse();};
+window.setAllPar=function(){
+  S.holes=S.holes.map((_,i)=>({par:4,si:SI[i]}));
+  _courseName='';
+  renderCourse();
+};
 window.startRound=function(){saveRound();nav('scorecard');};
 
+// ─── AI Course Scan ────────────────────────────────────────────
 window.handleCourseScan=async function(input){
   const file=input.files[0];
   if(!file)return;
