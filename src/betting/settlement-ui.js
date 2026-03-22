@@ -167,6 +167,7 @@ function renderSettlement(){
   <div style="padding:0 20px 16px">
     <button class="btn btn-gold" onclick="doneRound()" style="font-size:15px">✓ Everyone's Paid — Save Round</button>
     <button class="btn btn-ghost" onclick="openNineteenth()" style="margin-top:8px;font-size:14px">🍺 19th Hole — Settle at the Bar</button>
+    <button class="btn btn-outline" onclick="shareRoundCard()" style="margin-top:8px;font-size:13px;color:var(--mut)">📤 Share Round Results</button>
   </div>
   <div class="safe"></div>
 </div>`;
