@@ -3,6 +3,7 @@ import { PC } from '../constants.js'
 import { par3s, pn, ensureScr } from '../utils.js'
 import { nav, registerScreen } from '../router.js'
 import { segNets, skinsCalc, mpWins, balances, simplify } from './betting.js'
+import { loadSavedPlayers, addSavedPlayer, isPlayerSaved } from './saved-players.js'
 
 function renderSummary(){nav('settlement');}
 
@@ -136,6 +137,25 @@ function renderSettlement(){
       </div>`).join('')}
   </div>
 
+  ${(()=>{
+    const unsaved=S.players.filter(p=>p.name&&!isPlayerSaved(p.name));
+    return unsaved.length>0?`
+  <div style="padding:0 20px 16px">
+    <div id="save-players-card" style="background:rgba(201,168,75,.05);border:1px solid rgba(201,168,75,.2);border-radius:12px;padding:14px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:500;color:var(--gold);margin-bottom:10px">Save these players for next time?</div>
+      ${unsaved.map((p,ui)=>{
+        const pi=S.players.indexOf(p);
+        return `<label style="display:flex;align-items:center;gap:10px;padding:6px 0;cursor:pointer">
+          <input type="checkbox" checked class="save-player-cb" data-pi="${pi}" style="accent-color:var(--gold);width:18px;height:18px">
+          <span style="font-size:14px">${p.name}</span>
+          <span style="font-size:11px;color:var(--mut)">${p.hc} hdcp</span>
+        </label>`;
+      }).join('')}
+      <button onclick="saveSelectedPlayers()" class="btn btn-outline" style="margin-top:10px;padding:8px;font-size:13px;color:var(--gold);border-color:rgba(201,168,75,.3)">Save selected players</button>
+    </div>
+  </div>`:'';
+  })()}
+
   ${S.guest?`
   <div style="padding:0 20px 16px">
     <div style="background:rgba(201,168,75,.08);border:1px solid rgba(201,168,75,.25);border-radius:12px;padding:16px;text-align:center;margin-bottom:12px">
@@ -191,6 +211,17 @@ window.doneRound=async function(){
   S.players=[{name:'',hc:0},{name:'',hc:0},{name:'',hc:0},{name:'',hc:0}];
   S.scores=blank18();
   nav('home');
+};
+
+window.saveSelectedPlayers=function(){
+  const cbs=document.querySelectorAll('.save-player-cb:checked');
+  cbs.forEach(cb=>{
+    const pi=+cb.dataset.pi;
+    const p=S.players[pi];
+    if(p&&p.name) addSavedPlayer(p.name, p.hc, pi);
+  });
+  const card=document.getElementById('save-players-card');
+  if(card) card.innerHTML=`<div style="text-align:center;padding:8px;font-size:13px;color:#5ec47a">✓ Players saved!</div>`;
 };
 
 window.guestSignup=function(){
