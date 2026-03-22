@@ -90,28 +90,30 @@ window.courseSearch=function(query){
   clearTimeout(_searchTimer);
   const container=document.getElementById('course-results');
   if(!container) return;
-  if(query.trim().length<2){
-    container.innerHTML='';
+  if(query.trim().length<3){
+    container.innerHTML=query.trim().length>0?`<div style="padding:10px;color:var(--mut);font-size:13px">Type at least 3 characters to search</div>`:'';
     return;
   }
   container.innerHTML=`<div style="padding:10px;color:var(--mut);font-size:13px"><span class="spin">⛳</span> Searching...</div>`;
   _searchTimer=setTimeout(async()=>{
     try{
-      const res=await fetch(`/api/courses?search=${encodeURIComponent(query.trim())}`);
+      const res=await fetch(`/api/courses?q=${encodeURIComponent(query.trim())}`);
       const data=await res.json();
       const courses=data.courses||[];
       if(!courses.length){
-        container.innerHTML=`<div style="padding:10px;color:var(--mut);font-size:13px">No courses found. Try a different name or use scan/manual entry below.</div>`;
+        container.innerHTML=`<div style="padding:10px;color:var(--mut);font-size:13px">No courses found — try a shorter name or enter manually below.</div>`;
         return;
       }
-      // Filter to courses that have tee data with holes
-      container.innerHTML=courses.slice(0,8).map(c=>{
-        const loc=c.location;
-        const city=loc?[loc.city,loc.state].filter(Boolean).join(', '):'';
-        const hasTees=c.tees&&(c.tees.male?.length||c.tees.female?.length);
-        return `<div onclick="selectCourse(${c.id})" style="padding:10px 0;border-bottom:1px solid var(--brd);cursor:pointer;${hasTees?'':'opacity:.5'}">
-          <div style="font-size:14px;font-weight:500">${c.course_name||c.club_name}</div>
-          <div style="font-size:11px;color:var(--mut)">${city}${hasTees?'':' · No scorecard data'}</div>
+      // Each result is a club — show club name + location
+      // Clicking fetches the full course (first/only course in that club)
+      container.innerHTML=courses.slice(0,8).map(club=>{
+        const loc=club.location;
+        const city=loc?[loc.city,loc.state||loc.country].filter(Boolean).join(', '):'';
+        const courseId=club.courses?.[0]?.id||club.id;
+        const clubName=(club.club_name||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+        return `<div onclick="selectCourse(${courseId},'${clubName}')" style="padding:10px 0;border-bottom:1px solid var(--brd);cursor:pointer">
+          <div style="font-size:14px;font-weight:500">${club.club_name}</div>
+          <div style="font-size:11px;color:var(--mut)">${city}</div>
         </div>`;
       }).join('');
     }catch(e){
@@ -120,38 +122,55 @@ window.courseSearch=function(query){
   },400);
 };
 
-window.selectCourse=async function(courseId){
+window.selectCourse=async function(courseId, clubName){
   const container=document.getElementById('course-results');
-  if(container) container.innerHTML=`<div style="padding:10px;color:var(--mut);font-size:13px"><span class="spin">⛳</span> Loading course...</div>`;
+  if(container) container.innerHTML=`<div style="padding:10px;color:var(--mut);font-size:13px"><span class="spin">⛳</span> Loading ${clubName||'course'}...</div>`;
   try{
     const res=await fetch(`/api/courses?id=${courseId}`);
     const data=await res.json();
     const course=data.course;
     if(!course){throw new Error('Course not found');}
 
-    // Find the best tee set with holes data
-    const allTees=[...(course.tees?.male||[]),...(course.tees?.female||[])];
-    // Prefer men's tees, pick the first one with 18 holes
-    const tee=allTees.find(t=>t.holes?.length>=18)||allTees.find(t=>t.holes?.length>0);
-    if(!tee||!tee.holes?.length){
-      if(container) container.innerHTML=`<div style="padding:10px;color:var(--red);font-size:13px">This course doesn't have scorecard data. Use scan or manual entry.</div>`;
+    // Parse holes from course tees
+    const holes=parseHolesFromCourse(course);
+    if(!holes||holes.length!==18){
+      if(container) container.innerHTML=`<div style="padding:10px;color:var(--red);font-size:13px">Course data incomplete — please enter manually.</div>`;
       return;
     }
 
     // Apply holes data
-    tee.holes.forEach((h,i)=>{
-      if(i>=18) return;
-      if(h.par&&[3,4,5].includes(h.par)) S.holes[i].par=h.par;
-      if(h.handicap&&h.handicap>=1&&h.handicap<=18) S.holes[i].si=h.handicap;
+    holes.forEach((h,i)=>{
+      S.holes[i].par=h.par;
+      S.holes[i].si=h.si;
       S.holes[i]._fromApi=true;
     });
 
-    _courseName=course.course_name||course.club_name||'Course';
+    _courseName=course.course_name||course.club_name||clubName||'Course';
+    S.courseName=_courseName;
     renderCourse();
   }catch(e){
     if(container) container.innerHTML=`<div style="padding:10px;color:var(--red);font-size:13px">Failed to load course data.</div>`;
   }
 };
+
+function parseHolesFromCourse(course){
+  if(!course||!course.tees||course.tees.length===0) return null;
+  // Pick tee: prefer middle tee (white/regular) — good for casual gambling rounds
+  let tee=course.tees[0];
+  const preferred=['white','blue','regular','men'];
+  for(const p of preferred){
+    const found=course.tees.find(t=>t.tee_name?.toLowerCase().includes(p));
+    if(found){tee=found;break;}
+  }
+  if(!tee.holes||tee.holes.length===0) return null;
+  // Map into app's hole format: { par: 4, si: 7 }
+  return tee.holes
+    .sort((a,b)=>a.hole_number-b.hole_number)
+    .map(h=>({
+      par:h.par,
+      si:h.stroke_index||h.handicap||0
+    }));
+}
 
 // ─── Manual controls ───────────────────────────────────────────
 window.setPar=(h,p)=>{S.holes[h].par=p;renderCourse();};
