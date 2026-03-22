@@ -53,15 +53,20 @@ async function init(){
   }
 
   // Check auth session
-  const session = await getSession();
-  if(session?.user){
-    await setupUser(session.user);
-    if(joinCode){
-      S.screen = 'join-group';
+  try{
+    const session = await getSession();
+    if(session?.user){
+      await setupUser(session.user);
+      if(joinCode){
+        S.screen = 'join-group';
+      }else{
+        S.screen = 'home';
+      }
     }else{
-      S.screen = 'home';
+      S.screen = 'login';
     }
-  }else{
+  }catch(e){
+    console.error('Auth init failed:', e);
     S.screen = 'login';
   }
   render();
