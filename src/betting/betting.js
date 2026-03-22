@@ -90,6 +90,49 @@ export function balances(){
   }
   return bal;
 }
+// ─── PRESS BETS (added, does NOT modify balances()) ──────────
+export function pressCalc(presses){
+  // For each press, determine the winner over the press's hole range
+  // Uses same net-per-hole logic as Nassau
+  return presses.map(p=>{
+    const from=p.startHole-1; // convert to 0-indexed
+    const to=p.endHole-1;
+    // Count holes won per player in the press range
+    const wins=[0,0,0,0];
+    let complete=true;
+    for(let h=from;h<=to;h++){
+      const nets=S.players.map((_,pi)=>getNet(h,pi));
+      if(nets.some(n=>n===null)){complete=false;continue;}
+      const mn=Math.min(...nets.filter(n=>n!==null));
+      const ws=nets.reduce((a,n,i)=>n===mn?[...a,i]:a,[]);
+      if(ws.length===1) wins[ws[0]]++;
+    }
+    if(!complete) return {...p, result:null};
+    // Determine winner between the two press players
+    const [loserIdx, winnerIdx]=p.players; // [loser(presser), winner(being pressed)]
+    const li=S.players.findIndex(pl=>pl.name===loserIdx);
+    const wi=S.players.findIndex(pl=>pl.name===winnerIdx);
+    if(li===-1||wi===-1) return {...p, result:null};
+    if(wins[li]>wins[wi]) return {...p, result:{winner:loserIdx,loser:winnerIdx}};
+    if(wins[wi]>wins[li]) return {...p, result:{winner:winnerIdx,loser:loserIdx}};
+    return {...p, result:null}; // tie = push
+  });
+}
+export function pressBalances(presses){
+  // Returns balance adjustments from presses
+  const adj=[0,0,0,0];
+  const results=pressCalc(presses);
+  results.forEach(p=>{
+    if(!p.result) return;
+    const wi=S.players.findIndex(pl=>pl.name===p.result.winner);
+    const li=S.players.findIndex(pl=>pl.name===p.result.loser);
+    if(wi===-1||li===-1) return;
+    adj[wi]+=p.amount;
+    adj[li]-=p.amount;
+  });
+  return adj;
+}
+
 export function simplify(bal){
   const txns=[];
   const pos=bal.map((b,i)=>({b,i})).filter(x=>x.b>0.5).sort((a,b)=>b.b-a.b);

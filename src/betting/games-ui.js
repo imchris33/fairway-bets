@@ -22,6 +22,23 @@ function renderGames(){
       <div><div style="font-size:11px;color:var(--mut);margin-bottom:5px;text-align:center">Front $</div><input type="number" min="0" value="${nassau.front}" oninput="S.games.nassau.front=+this.value||0" style="width:100%"></div>
       <div><div style="font-size:11px;color:var(--mut);margin-bottom:5px;text-align:center">Back $</div><input type="number" min="0" value="${nassau.back}" oninput="S.games.nassau.back=+this.value||0" style="width:100%"></div>
       <div><div style="font-size:11px;color:var(--mut);margin-bottom:5px;text-align:center">Overall $</div><input type="number" min="0" value="${nassau.overall}" oninput="S.games.nassau.overall=+this.value||0" style="width:100%"></div>
+    </div>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.06)">
+      <div style="font-size:11px;color:var(--mut);margin-bottom:8px">Presses</div>
+      ${[['none','No presses'],['manual','Manual only'],['auto-2','Auto when 2 down'],['auto-1','Auto when 1 down']].map(([val,label])=>`
+      <label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer">
+        <input type="radio" name="press-mode" value="${val}" ${S.nassauPresses.mode===val?'checked':''} onchange="S.nassauPresses.mode='${val}'" style="accent-color:var(--gold)">
+        <span style="font-size:13px;color:${S.nassauPresses.mode===val?'var(--txt)':'var(--mut)'}">${label}</span>
+      </label>`).join('')}
+      ${S.nassauPresses.mode!=='none'?`
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+        <span style="font-size:11px;color:var(--mut);flex:1">Press amount</span>
+        <select onchange="S.nassauPresses.amount=this.value" style="background:var(--dim);border:1px solid var(--brd);border-radius:6px;color:var(--txt);padding:6px 10px;font-size:13px;font-family:Outfit,sans-serif">
+          <option value="same" ${S.nassauPresses.amount==='same'?'selected':''}>Same as original</option>
+          <option value="half" ${S.nassauPresses.amount==='half'?'selected':''}>Half</option>
+          <option value="double" ${S.nassauPresses.amount==='double'?'selected':''}>Double</option>
+        </select>
+      </div>`:''}
     </div>`:''}
   </div>
 

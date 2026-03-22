@@ -2,7 +2,7 @@ import { S } from '../state.js'
 import { PC } from '../constants.js'
 import { holesIn, par3s, pn, ensureScr } from '../utils.js'
 import { nav, registerScreen } from '../router.js'
-import { segNets, skinsCalc, mpWins, balances } from './betting.js'
+import { segNets, skinsCalc, mpWins, balances, pressCalc } from './betting.js'
 
 function renderLive(){
   const el=ensureScr('live');
@@ -44,6 +44,13 @@ function renderLive(){
     ${S.games.nassau.front?`<div class="lb-seg">Front 9 — $${S.games.nassau.front}</div>${lbBlock(fNets,'front',S.games.nassau.front)}<div class="divider"></div>`:''}
     ${S.games.nassau.back?`<div class="lb-seg">Back 9 — $${S.games.nassau.back}</div>${lbBlock(bNets,'back',S.games.nassau.back)}<div class="divider"></div>`:''}
     ${S.games.nassau.overall?`<div class="lb-seg">Overall — $${S.games.nassau.overall}</div>${lbBlock(oNets,'overall',S.games.nassau.overall)}`:''}
+    ${S.presses.length>0?`<div class="divider"></div><div class="lb-seg" style="color:var(--gold)">Active Presses</div>${S.presses.map(p=>{
+      const res=pressCalc([p])[0];
+      return `<div class="lb-row">
+        <div class="lb-name" style="font-size:11px">${p.nine==='front'?'Front':'Back'} ${p.startHole}–${p.endHole} · $${p.amount}</div>
+        <div class="lb-val neu" style="font-size:11px">${res.result?res.result.winner+' wins':p.players.join(' vs ')}</div>
+      </div>`;
+    }).join('')}`:''}
   </div>`:''}
 
   ${S.games.skins.on?`<div class="card">

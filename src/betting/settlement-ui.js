@@ -2,15 +2,18 @@ import { S, blank18, clearRound, pushHistory, loadLocalDebts, addLocalDebts, mar
 import { PC } from '../constants.js'
 import { par3s, pn, ensureScr } from '../utils.js'
 import { nav, registerScreen } from '../router.js'
-import { segNets, skinsCalc, mpWins, balances, simplify } from './betting.js'
+import { segNets, skinsCalc, mpWins, balances, simplify, pressCalc, pressBalances } from './betting.js'
 import { loadSavedPlayers, addSavedPlayer, isPlayerSaved } from './saved-players.js'
 
 function renderSummary(){nav('settlement');}
 
 function renderSettlement(){
   const el=ensureScr('settlement');
-  const bal=balances();
+  const baseBal=balances();
+  const pressAdj=S.presses.length>0?pressBalances(S.presses):[0,0,0,0];
+  const bal=baseBal.map((b,i)=>b+pressAdj[i]);
   const txns=simplify([...bal]);
+  const pressResults=S.presses.length>0?pressCalc(S.presses):[];
   const activePl=S.players.filter(p=>p.name);
   const date=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
 
@@ -28,6 +31,13 @@ function renderSettlement(){
       else if(ws.length>1)winners.push({game:label,name:'Push — tied',earn:'$0',i:-1,push:true});
     });
   }
+  // Press results
+  pressResults.forEach(p=>{
+    if(!p.result) return;
+    const wi=S.players.findIndex(pl=>pl.name===p.result.winner);
+    winners.push({game:`Press · ${p.nine==='front'?'Front':'Back'} ${p.startHole}–${p.endHole}`,name:p.result.winner,earn:`+$${p.amount}`,i:wi>=0?wi:0,push:false,isPress:true});
+  });
+
   if(S.games.skins.on){
     const sw=[0,0,0,0];skinsCalc().forEach(r=>{if(r.w!==null)sw[r.w]+=r.pot;});
     const tot=sw.reduce((a,b)=>a+b,0);
@@ -88,9 +98,12 @@ function renderSettlement(){
           <div style="font-size:12px;color:#5ec47a">$0</div>
         </div>`
       :`<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--card);border-radius:10px;margin-bottom:6px">
-          <div style="font-size:16px;width:24px;text-align:center">🏆</div>
+          <div style="font-size:16px;width:24px;text-align:center">${w.isPress?'🔄':'🏆'}</div>
           <div style="flex:1">
-            <div style="font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${w.game}</div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${w.game}</div>
+              ${w.isPress?`<span style="font-size:8px;color:var(--gold);background:rgba(201,168,75,.15);border:1px solid rgba(201,168,75,.3);border-radius:3px;padding:1px 5px;font-weight:600">PRESS</span>`:''}
+            </div>
             <div style="font-size:13px;font-weight:600;color:${PC[w.i]}">${w.name}</div>
           </div>
           <div style="font-size:13px;font-weight:600;color:var(--gold)">${w.earn}</div>

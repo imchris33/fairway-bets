@@ -15,6 +15,8 @@ export let S={
   },
   holes:PARS.map((par,i)=>({par,si:SI[i]})),
   scores:blank18(),
+  nassauPresses:{mode:'none',amount:'same'},
+  presses:[],
   history:[],
   // Multi-user state
   guest:false,
@@ -30,13 +32,13 @@ export function load(){
     const h=localStorage.getItem('fb_h');
     if(h) S.history=JSON.parse(h);
     const r=localStorage.getItem('fb_r');
-    if(r){const d=JSON.parse(r);S.players=d.players;S.games=d.games;S.holes=d.holes;S.scores=d.scores;if(d.strokes)S.strokes=d.strokes;}
+    if(r){const d=JSON.parse(r);S.players=d.players;S.games=d.games;S.holes=d.holes;S.scores=d.scores;if(d.strokes)S.strokes=d.strokes;if(d.nassauPresses)S.nassauPresses=d.nassauPresses;if(d.presses)S.presses=d.presses;}
     const gid=localStorage.getItem('fb_gid');
     if(gid) S.currentGroupId=gid;
   }catch(e){}
 }
 export function saveRound(){
-  try{localStorage.setItem('fb_r',JSON.stringify({players:S.players,games:S.games,holes:S.holes,scores:S.scores,strokes:S.strokes}));}catch(e){}
+  try{localStorage.setItem('fb_r',JSON.stringify({players:S.players,games:S.games,holes:S.holes,scores:S.scores,strokes:S.strokes,nassauPresses:S.nassauPresses,presses:S.presses}));}catch(e){}
 }
 export function clearRound(){localStorage.removeItem('fb_r');}
 export function pushHistory(e){

@@ -1,8 +1,8 @@
 import { S, saveRound } from '../state.js'
 import { PC, PBG } from '../constants.js'
-import { holesIn, diffCls, ensureScr, pn } from '../utils.js'
+import { holesIn, diffCls, ensureScr, pn, showToast } from '../utils.js'
 import { nav, registerScreen } from '../router.js'
-import { getNet, hcStrokes, playingHc } from './betting.js'
+import { getNet, hcStrokes, playingHc, segNets } from './betting.js'
 
 function renderScorecard(){
   const el=ensureScr('scorecard');
@@ -213,7 +213,12 @@ ${isp3&&S.games.ctp.on?`<div class="ctp-sec">
   window.saveHole=(hi)=>{
     S.scores[hi].g=[...wg];
     S.scores[hi].ctp=wctp;
-    saveRound();closeSheet();renderScorecard();
+    saveRound();closeSheet();
+    // Check for press opportunities after saving
+    if(S.games.nassau.on&&S.nassauPresses.mode!=='none'){
+      checkForPress(hi);
+    }
+    renderScorecard();
   };
 
   draw();
@@ -224,5 +229,84 @@ window.closeSheet=function(e){
   if(e&&e.target!==e.currentTarget)return;
   document.getElementById('overlay').classList.remove('open');
 };
+
+// ─── Press bet checking ─────────────────────────────────────────
+function checkForPress(hi){
+  const mode=S.nassauPresses.mode;
+  const downBy=mode==='auto-1'?1:mode==='auto-2'?2:2;
+  const nine=hi<9?'front':'back';
+  const nineStart=nine==='front'?0:9;
+  const nineEnd=nine==='front'?8:17;
+  const holesLeft=nineEnd-hi;
+
+  if(holesLeft<1) return; // Not enough holes left for a press
+
+  // Calculate net holes won per player for this nine so far
+  const active=S.players.map((p,i)=>({name:p.name,idx:i})).filter(p=>p.name);
+  if(active.length<2) return;
+
+  const wins=active.map(p=>{
+    let w=0;
+    for(let h=nineStart;h<=hi;h++){
+      const net=getNet(h,p.idx);
+      if(net===null) continue;
+      const others=active.filter(o=>o.idx!==p.idx);
+      const otherNets=others.map(o=>getNet(h,o.idx)).filter(n=>n!==null);
+      if(otherNets.length&&net<Math.min(...otherNets)) w++;
+    }
+    return w;
+  });
+
+  // Check each pair
+  for(let i=0;i<active.length;i++){
+    for(let j=i+1;j<active.length;j++){
+      const diff=wins[i]-wins[j];
+      const loser=diff<0?i:j;
+      const winner=diff<0?j:i;
+      const deficit=Math.abs(diff);
+
+      if(deficit>=downBy){
+        const loserName=active[loser].name;
+        const winnerName=active[winner].name;
+
+        // Check if a press already exists for this range
+        const alreadyPressed=S.presses.some(p=>
+          p.nine===nine&&p.startHole===hi+2&&
+          p.players[0]===loserName&&p.players[1]===winnerName
+        );
+        if(alreadyPressed) continue;
+
+        // Calculate press amount
+        let amt=S.games.nassau[nine==='front'?'front':'back']||10;
+        if(S.nassauPresses.amount==='half') amt=Math.round(amt/2);
+        if(S.nassauPresses.amount==='double') amt=amt*2;
+
+        if(mode==='manual'){
+          // Show press prompt (simplified — just fire it since we can't block)
+          if(confirm(`${loserName} is ${deficit} down on the ${nine} with ${holesLeft} holes left.\n\nPress for $${amt}?`)){
+            firePress(nine, hi+2, nineEnd+1, amt, loserName, winnerName);
+          }
+        }else{
+          // Auto-press
+          firePress(nine, hi+2, nineEnd+1, amt, loserName, winnerName);
+          showToast(`Auto-press: ${loserName} vs ${winnerName}, $${amt}, holes ${hi+2}–${nineEnd+1}`);
+        }
+      }
+    }
+  }
+}
+
+function firePress(nine, startHole, endHole, amount, loserName, winnerName){
+  S.presses.push({
+    id:crypto.randomUUID(),
+    nine,
+    startHole,
+    endHole,
+    amount,
+    players:[loserName, winnerName],
+    result:null
+  });
+  saveRound();
+}
 
 registerScreen('scorecard', renderScorecard);
