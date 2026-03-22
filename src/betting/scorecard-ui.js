@@ -82,6 +82,46 @@ ${done===18
 <div class="safe"></div>`;
 }
 
+// ─── Score label helpers ────────────────────────────────────────
+function scoreLabel(score, par){
+  const diff=score-par;
+  if(score===1) return 'Ace';
+  if(diff<=-3) return 'Albatross';
+  if(diff===-2) return 'Eagle';
+  if(diff===-1) return 'Birdie';
+  if(diff===0) return 'Par';
+  if(diff===1) return 'Bogey';
+  if(diff===2) return 'Double';
+  if(diff===3) return 'Triple';
+  return `+${diff}`;
+}
+
+function scoreBtnStyle(score, par, isSelected, currentScore){
+  const diff=score-par;
+  if(isSelected){
+    return 'background:#c9a84b;color:#000;border:2px solid #c9a84b;font-weight:700';
+  }
+  if(diff<0){
+    return 'background:rgba(94,196,122,.08);border:1px solid rgba(94,196,122,.2);color:#5ec47a';
+  }
+  if(diff===0){
+    return 'background:rgba(201,168,75,.08);border:1px solid rgba(201,168,75,.2);color:#c9a84b';
+  }
+  // above par
+  return 'background:rgba(220,80,60,.06);border:1px solid rgba(220,80,60,.15);color:#dc503c';
+}
+
+function netLabel(net, par){
+  const diff=net-par;
+  if(diff<=-2) return {text:'Eagle or better', color:'#5ec47a'};
+  if(diff===-1) return {text:'Birdie', color:'#5ec47a'};
+  if(diff===0) return {text:'Par', color:'#c9a84b'};
+  if(diff===1) return {text:'Bogey', color:'#dc503c'};
+  if(diff===2) return {text:'Double', color:'#dc503c'};
+  return {text:`+${diff}`, color:'#dc503c'};
+}
+
+// ─── Open hole bottom sheet ─────────────────────────────────────
 window.openHole=function(hi){
   const hole=S.holes[hi];
   const sc=S.scores[hi];
@@ -97,21 +137,56 @@ window.openHole=function(hi){
 ${S.players.map((p,pi)=>{
   if(!p.name)return '';
   const strokes=hcStrokes(playingHc(pi),hole.si);
-  const net=wg[pi]!==null?wg[pi]-strokes:null;
-  const diff=wg[pi]!==null?wg[pi]-hole.par:null;
-  const col=diff===null?'var(--txt)':diff<0?'var(--gold2)':diff>0?'var(--red)':'var(--txt)';
-  return `<div class="psr">
-    <div style="width:10px;height:10px;border-radius:50%;background:${PC[pi]};flex-shrink:0"></div>
-    <div class="psr-info">
-      <div class="psr-name">${p.name}</div>
-      <div class="psr-hc">${strokes>0?`Gets ${strokes} stroke${strokes>1?'s':''} (HC diff ${playingHc(pi)})`:playingHc(pi)===0?'Low man — no strokes':'No stroke this hole'}</div>
-      ${net!==null?`<div style="font-size:10px;color:var(--mut);margin-top:1px">net ${net}</div>`:''}
+  const gross=wg[pi];
+  const net=gross!==null?gross-strokes:null;
+  const netDiff=net!==null?net-hole.par:null;
+  const nl=net!==null?netLabel(net,hole.par):{text:'',color:'var(--mut)'};
+
+  // Score buttons 1-8
+  const minScore=1;
+  const maxScore=8;
+  const scoreButtons=[];
+  for(let s=minScore;s<=maxScore;s++){
+    const sel=gross===s;
+    const style=scoreBtnStyle(s, hole.par, sel, gross);
+    const label=scoreLabel(s, hole.par);
+    scoreButtons.push(`<button onclick="setScore(${pi},${s})" style="min-width:52px;height:60px;border-radius:10px;${style};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;flex-shrink:0;padding:0 4px;font-family:Outfit,sans-serif">
+      <span style="font-size:20px;font-weight:700;line-height:1">${s}</span>
+      <span style="font-size:8px;line-height:1;opacity:.85;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap">${label}</span>
+    </button>`);
+  }
+  // +/- fallback for scores > 8
+  scoreButtons.push(`<button onclick="adjScore(${pi},1)" style="min-width:40px;height:60px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:var(--mut);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:18px;font-family:Outfit,sans-serif">${gross!==null&&gross>8?gross:'+'}${gross!==null&&gross>8?`<span style="font-size:9px;margin-left:2px">▲</span>`:''}</button>`);
+
+  return `<div style="margin-bottom:14px">
+    <!-- Player header -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:0 2px">
+      <div style="width:10px;height:10px;border-radius:50%;background:${PC[pi]};flex-shrink:0"></div>
+      <div style="flex:1">
+        <span style="font-size:14px;font-weight:600;color:var(--txt)">${p.name}</span>
+        <span style="font-size:11px;color:var(--mut);margin-left:6px">${strokes>0?`+${strokes} stroke${strokes>1?'s':''}`:playingHc(pi)===0?'Low man':'No stroke'}</span>
+      </div>
     </div>
-    <div class="stepper">
-      <button class="step-btn" onclick="adj(${pi},-1)">−</button>
-      <div class="step-val" style="color:${col}">${wg[pi]!==null?wg[pi]:'—'}</div>
-      <button class="step-btn" onclick="adj(${pi},1)">+</button>
+
+    <!-- Score buttons row -->
+    <div style="display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none">
+      ${scoreButtons.join('')}
     </div>
+
+    <!-- Net score display -->
+    ${gross!==null?`<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.03);border-radius:9px;padding:8px 12px;margin-top:4px">
+      <div>
+        <span style="font-size:11px;color:var(--mut)">Net </span>
+        <span style="font-size:16px;font-weight:700;color:${nl.color}">${net}</span>
+        ${strokes>0?`<span style="font-size:11px;color:${nl.color};margin-left:6px">${nl.text} (with stroke${strokes>1?'s':''})</span>`
+          :`<span style="font-size:11px;color:${nl.color};margin-left:6px">${nl.text}</span>`}
+      </div>
+      <div style="text-align:right">
+        <span style="font-size:11px;color:var(--mut)">Gross </span>
+        <span style="font-size:14px;font-weight:600;color:var(--txt)">${gross}</span>
+      </div>
+    </div>`:''
+    }
   </div>`;
 }).join('')}
 ${isp3&&S.games.ctp.on?`<div class="ctp-sec">
@@ -128,7 +203,12 @@ ${isp3&&S.games.ctp.on?`<div class="ctp-sec">
 <div class="safe"></div>`;
   }
 
-  window.adj=(pi,d)=>{wg[pi]=Math.max(1,(wg[pi]||hole.par)+d);draw();};
+  window.setScore=(pi,val)=>{wg[pi]=val;draw();};
+  window.adjScore=(pi,d)=>{
+    const cur=wg[pi]||hole.par;
+    wg[pi]=Math.max(1,cur+d);
+    draw();
+  };
   window.setCTP=(pi)=>{wctp=pi===-1?null:pi;draw();};
   window.saveHole=(hi)=>{
     S.scores[hi].g=[...wg];
