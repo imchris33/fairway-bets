@@ -73,7 +73,13 @@ async function init(){
     console.error('Auth init failed:', e);
     S.screen = 'landing';
   }
-  render();
+  try{
+    render();
+  }catch(e){
+    console.error('Render failed:', e);
+    // Fallback: show landing page directly
+    document.getElementById('app').innerHTML='<div style="text-align:center;padding:60px 20px;color:#ede8d8"><div style="font-size:48px;margin-bottom:16px">⛳</div><div style="font-family:Georgia,serif;font-size:24px;color:#c9a84b;margin-bottom:8px">Fairway Bets</div><div style="color:#7b9a85;margin-bottom:20px">Something went wrong loading the app.</div><button onclick="location.reload()" style="background:#c9a84b;color:#000;border:none;padding:12px 24px;border-radius:8px;font-weight:700;cursor:pointer">Reload</button></div>';
+  }
 }
 
 async function setupUser(user){

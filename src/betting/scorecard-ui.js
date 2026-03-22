@@ -245,8 +245,6 @@ window.closeSheet=function(e){
 };
 
 // ─── Wolf game logic ────────────────────────────────────────────
-import { getNet as wolfGetNet } from './betting.js'
-
 function getWolfForHole(hi){
   const active=S.players.map((p,i)=>({name:p.name,idx:i})).filter(p=>p.name);
   if(active.length!==4) return null;
