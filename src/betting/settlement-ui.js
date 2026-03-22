@@ -2,7 +2,7 @@ import { S, blank18, clearRound, pushHistory, loadLocalDebts, addLocalDebts, mar
 import { PC } from '../constants.js'
 import { par3s, pn, ensureScr } from '../utils.js'
 import { nav, registerScreen } from '../router.js'
-import { segNets, skinsCalc, mpWins, balances, simplify, pressCalc, pressBalances } from './betting.js'
+import { segNets, skinsCalc, mpWins, balances, simplify, pressCalc, pressBalances, wolfBalances } from './betting.js'
 import { loadSavedPlayers, addSavedPlayer, isPlayerSaved } from './saved-players.js'
 
 function renderSummary(){nav('settlement');}
@@ -11,7 +11,8 @@ function renderSettlement(){
   const el=ensureScr('settlement');
   const baseBal=balances();
   const pressAdj=S.presses.length>0?pressBalances(S.presses):[0,0,0,0];
-  const bal=baseBal.map((b,i)=>b+pressAdj[i]);
+  const wolfAdj=S.wolf.enabled?wolfBalances():[0,0,0,0];
+  const bal=baseBal.map((b,i)=>b+pressAdj[i]+wolfAdj[i]);
   const txns=simplify([...bal]);
   const pressResults=S.presses.length>0?pressCalc(S.presses):[];
   const activePl=S.players.filter(p=>p.name);
@@ -64,6 +65,22 @@ function renderSettlement(){
     Object.entries(ctpWins).forEach(([wi,count])=>{
       winners.push({game:`Closest to Pin · ${count} hole${count>1?'s':''}`,name:pn(+wi),earn:`+$${S.games.ctp.amt*(activePl.length-1)*count}`,i:+wi,push:false});
     });
+  }
+  // Wolf results
+  if(S.wolf.enabled&&S.wolfHoles.length>0){
+    const wolfWins={};
+    S.wolfHoles.forEach(wh=>{
+      if(wh.result==='wolf-team'){
+        wolfWins[wh.wolf]=(wolfWins[wh.wolf]||0)+1;
+      }
+    });
+    const wolfEntries=Object.entries(wolfWins);
+    if(wolfEntries.length>0){
+      const [topWolf,topCount]=wolfEntries.sort((a,b)=>b[1]-a[1])[0];
+      const wi=S.players.findIndex(p=>p.name===topWolf);
+      const totalWolfEarn=wolfAdj[wi]>0?wolfAdj[wi]:0;
+      winners.push({game:`Wolf · ${topCount} hole${topCount>1?'s':''} won`,name:topWolf,earn:totalWolfEarn>0?`+$${totalWolfEarn}`:'$0',i:wi>=0?wi:0,push:false});
+    }
   }
 
   const balSorted=[...bal.map((b,i)=>({b,i}))].filter(x=>S.players[x.i].name).sort((a,b)=>b.b-a.b);

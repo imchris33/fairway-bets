@@ -133,6 +133,56 @@ export function pressBalances(presses){
   return adj;
 }
 
+// ─── WOLF GAME (added, does NOT modify balances()) ──────────
+export function wolfBalances(){
+  const adj=[0,0,0,0];
+  if(!S.wolf.enabled||!S.wolfHoles.length) return adj;
+  const active=S.players.filter(p=>p.name);
+  if(active.length!==4) return adj;
+  const ppHole=S.wolf.pointsPerHole||2;
+
+  S.wolfHoles.forEach(wh=>{
+    if(!wh.result) return;
+    const hi=wh.hole-1; // 0-indexed
+    const wolfIdx=S.players.findIndex(p=>p.name===wh.wolf);
+    if(wolfIdx===-1) return;
+
+    if(wh.partner){
+      // 2v2
+      const partnerIdx=S.players.findIndex(p=>p.name===wh.partner);
+      if(partnerIdx===-1) return;
+      const team=[wolfIdx,partnerIdx];
+      const others=[0,1,2,3].filter(i=>!team.includes(i)&&S.players[i].name);
+
+      // Get net scores for the hole
+      const wolfTeamNet=Math.min(getNet(hi,wolfIdx)||99, getNet(hi,partnerIdx)||99);
+      const otherTeamNet=Math.min(...others.map(i=>getNet(hi,i)||99));
+
+      if(wh.result==='wolf-team'){
+        // Wolf team wins: each wolf team member collects from each opponent
+        team.forEach(t=>others.forEach(o=>{adj[t]+=ppHole;adj[o]-=ppHole;}));
+      }else{
+        // Other team wins
+        others.forEach(o=>team.forEach(t=>{adj[o]+=ppHole;adj[t]-=ppHole;}));
+      }
+    }else{
+      // Lone Wolf
+      const others=[0,1,2,3].filter(i=>i!==wolfIdx&&S.players[i].name);
+      const mult=wh.blindWolf?2:1;
+
+      if(wh.result==='wolf-team'){
+        // Lone Wolf wins: collects from each
+        others.forEach(o=>{adj[wolfIdx]+=ppHole*mult;adj[o]-=ppHole*mult;});
+      }else{
+        // Lone Wolf loses: pays each
+        others.forEach(o=>{adj[o]+=ppHole;adj[wolfIdx]-=ppHole;});
+      }
+    }
+  });
+
+  return adj;
+}
+
 export function simplify(bal){
   const txns=[];
   const pos=bal.map((b,i)=>({b,i})).filter(x=>x.b>0.5).sort((a,b)=>b.b-a.b);

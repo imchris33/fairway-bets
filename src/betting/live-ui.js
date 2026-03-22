@@ -2,7 +2,7 @@ import { S } from '../state.js'
 import { PC } from '../constants.js'
 import { holesIn, par3s, pn, ensureScr } from '../utils.js'
 import { nav, registerScreen } from '../router.js'
-import { segNets, skinsCalc, mpWins, balances, pressCalc } from './betting.js'
+import { segNets, skinsCalc, mpWins, balances, pressCalc, wolfBalances } from './betting.js'
 
 function renderLive(){
   const el=ensureScr('live');
@@ -81,6 +81,26 @@ function renderLive(){
       <div class="lb-name">Hole ${h+1}</div>
       <div class="lb-val ${w!==null?'pos':'neu'}">${w!==null?pn(w):'TBD'}</div>
     </div>`;}).join('')}
+  </div>`:''}
+
+  ${S.wolf.enabled?`<div class="card">
+    <div class="lb-game">🐺 Wolf — $${S.wolf.pointsPerHole}/hole</div>
+    ${(()=>{
+      const wAdj=wolfBalances();
+      const wolfStats=S.players.map((p,i)=>{
+        if(!p.name) return null;
+        const wolfCount=S.wolfHoles.filter(wh=>wh.wolf===p.name).length;
+        const wolfWins=S.wolfHoles.filter(wh=>wh.wolf===p.name&&wh.result==='wolf-team').length;
+        const wolfLosses=S.wolfHoles.filter(wh=>wh.wolf===p.name&&wh.result==='other-team').length;
+        return {name:p.name,idx:i,wolfCount,wins:wolfWins,losses:wolfLosses,net:wAdj[i]};
+      }).filter(Boolean).sort((a,b)=>b.net-a.net);
+      return wolfStats.map(ws=>`<div class="lb-row">
+        <div class="lb-dot" style="background:${PC[ws.idx]}"></div>
+        <div class="lb-name">${ws.name}</div>
+        <div style="font-size:11px;color:var(--mut);margin-right:8px">${ws.wolfCount}× wolf · ${ws.wins}W ${ws.losses}L</div>
+        <div class="lb-val ${ws.net>0?'pos':ws.net<0?'neg':'neu'}">${ws.net>0?'+':''}$${Math.abs(ws.net)}</div>
+      </div>`).join('');
+    })()}
   </div>`:''}
 
   <div class="card">

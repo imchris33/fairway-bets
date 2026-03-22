@@ -86,11 +86,36 @@ function renderGames(){
     </div>`:''}
   </div>
 
+  <div class="card">
+    <div class="toggle-row" style="padding-top:0">
+      <div class="t-label">
+        <h3>🐺 Wolf</h3>
+        <p>${S.players.filter(p=>p.name).length===4?'Rotation game · pick your partner each hole':'<span style="color:var(--red)">Requires exactly 4 players</span>'}</p>
+      </div>
+      <button class="tog ${S.wolf.enabled?'on':''}" onclick="togWolf()" ${S.players.filter(p=>p.name).length!==4?'disabled style="opacity:.4"':''}></button>
+    </div>
+    ${S.wolf.enabled?`
+    <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
+      <span style="font-size:14px;color:var(--mut);flex:1">$ per hole</span>
+      <input type="number" min="0" value="${S.wolf.pointsPerHole}" oninput="S.wolf.pointsPerHole=+this.value||0">
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px">
+      <span style="font-size:13px;color:var(--mut)">Allow Blind Wolf</span>
+      <button class="tog ${S.wolf.allowBlind?'on':''}" onclick="S.wolf.allowBlind=!S.wolf.allowBlind;renderGames()"></button>
+    </div>`:''}
+  </div>
+
   <button class="btn btn-gold" onclick="teeOff()">⛳ Tee Off</button>
   <div class="safe"></div>
 </div>`;
 }
 window.tog=function(g){S.games[g].on=!S.games[g].on;renderGames();};
+window.togWolf=function(){
+  if(S.players.filter(p=>p.name).length!==4) return;
+  S.wolf.enabled=!S.wolf.enabled;
+  if(!S.wolf.enabled) S.wolfHoles=[];
+  renderGames();
+};
 window.teeOff=function(){nav('course');};
 
 registerScreen('games', renderGames);

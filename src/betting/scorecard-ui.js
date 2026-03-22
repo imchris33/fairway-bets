@@ -134,6 +134,16 @@ window.openHole=function(hi){
 <div class="sheet-handle"></div>
 <div class="sheet-title">Hole ${hi+1}</div>
 <div class="sheet-sub">Par ${hole.par} &nbsp;·&nbsp; Stroke Index ${hole.si}${isp3?' &nbsp;·&nbsp; Par 3':''}</div>
+${(()=>{
+  if(!S.wolf.enabled||S.players.filter(p=>p.name).length!==4) return '';
+  const wolfP=getWolfForHole(hi);
+  if(!wolfP) return '';
+  const active=S.players.filter(p=>p.name);
+  return `<div style="margin:8px 0;padding:10px 14px;background:rgba(201,168,75,.08);border:1px solid rgba(201,168,75,.2);border-radius:10px">
+    <div style="font-size:14px;font-weight:600;color:var(--gold);margin-bottom:4px">🐺 ${wolfP.name} is the Wolf</div>
+    <div style="font-size:11px;color:var(--mut)">Tee order: ${active.map((p,i)=>i===hi%4?`<strong style="color:var(--gold)">${p.name}</strong>`:p.name).join(' · ')}</div>
+  </div>`;
+})()}
 ${S.players.map((p,pi)=>{
   if(!p.name)return '';
   const strokes=hcStrokes(playingHc(pi),hole.si);
@@ -218,6 +228,10 @@ ${isp3&&S.games.ctp.on?`<div class="ctp-sec">
     if(S.games.nassau.on&&S.nassauPresses.mode!=='none'){
       checkForPress(hi);
     }
+    // Wolf partnership decision
+    if(S.wolf.enabled&&S.players.filter(p=>p.name).length===4){
+      showWolfDecision(hi);
+    }
     renderScorecard();
   };
 
@@ -229,6 +243,93 @@ window.closeSheet=function(e){
   if(e&&e.target!==e.currentTarget)return;
   document.getElementById('overlay').classList.remove('open');
 };
+
+// ─── Wolf game logic ────────────────────────────────────────────
+import { getNet as wolfGetNet } from './betting.js'
+
+function getWolfForHole(hi){
+  const active=S.players.map((p,i)=>({name:p.name,idx:i})).filter(p=>p.name);
+  if(active.length!==4) return null;
+  return active[hi%4];
+}
+
+function showWolfDecision(hi){
+  const wolf=getWolfForHole(hi);
+  if(!wolf) return;
+
+  // Check if already decided for this hole
+  if(S.wolfHoles.find(wh=>wh.hole===hi+1)) return;
+
+  const active=S.players.filter(p=>p.name);
+  const nonWolf=active.filter(p=>p.name!==wolf.name);
+
+  // Get net scores for this hole
+  const scores=active.map(p=>{
+    const idx=S.players.indexOf(p);
+    const net=getNet(hi,idx);
+    return {name:p.name,net,idx};
+  });
+
+  const wolfNet=scores.find(s=>s.name===wolf.name)?.net;
+
+  // Show decision prompt
+  const choices=nonWolf.map(p=>`"${p.name}"`).join(', ');
+  const blindAllowed=S.wolf.allowBlind;
+
+  // Build a simple prompt for partnership
+  let choice=null;
+
+  // Check if blind wolf was already selected (before scoring)
+  // For simplicity, show a confirm-style flow
+  if(blindAllowed){
+    const goBlind=confirm(`🐺 ${wolf.name} is the Wolf on hole ${hi+1}.\n\nGo Blind Wolf? (Double payout if you win)`);
+    if(goBlind){
+      // Blind wolf — determine result
+      const wolfScore=wolfNet;
+      const bestOther=Math.min(...nonWolf.map(p=>getNet(hi,S.players.indexOf(p))||99));
+      const result=wolfScore!==null&&wolfScore<=bestOther?'wolf-team':'other-team';
+      S.wolfHoles.push({
+        hole:hi+1,wolf:wolf.name,partner:null,blindWolf:true,result
+      });
+      saveRound();
+      showToast(result==='wolf-team'?`🐺 Blind Wolf wins! ${wolf.name} collects double!`:`🐺 Blind Wolf loses! ${wolf.name} pays all.`);
+      return;
+    }
+  }
+
+  // Partnership decision
+  const partnerChoice=prompt(`🐺 ${wolf.name} is the Wolf on hole ${hi+1}.\n\nPick a partner (or leave blank for Lone Wolf):\n${nonWolf.map((p,i)=>`${i+1}. ${p.name}`).join('\n')}\n\nEnter 1, 2, or 3 (blank = Lone Wolf):`);
+
+  let partner=null;
+  const num=parseInt(partnerChoice);
+  if(num>=1&&num<=nonWolf.length){
+    partner=nonWolf[num-1].name;
+  }
+
+  // Determine result
+  if(partner){
+    // 2v2
+    const wolfIdx=S.players.findIndex(p=>p.name===wolf.name);
+    const partnerIdx=S.players.findIndex(p=>p.name===partner);
+    const teamNet=Math.min(getNet(hi,wolfIdx)||99, getNet(hi,partnerIdx)||99);
+    const others=[0,1,2,3].filter(i=>![wolfIdx,partnerIdx].includes(i)&&S.players[i].name);
+    const otherNet=Math.min(...others.map(i=>getNet(hi,i)||99));
+    const result=teamNet<=otherNet?'wolf-team':'other-team';
+    S.wolfHoles.push({hole:hi+1,wolf:wolf.name,partner,blindWolf:false,result});
+    saveRound();
+    showToast(result==='wolf-team'?`🐺 Wolf team wins! ${wolf.name} + ${partner}`:`${wolf.name}'s team loses this hole`);
+  }else{
+    // Lone Wolf
+    const wolfIdx=S.players.findIndex(p=>p.name===wolf.name);
+    const wolfScore=getNet(hi,wolfIdx);
+    const others=[0,1,2,3].filter(i=>i!==wolfIdx&&S.players[i].name);
+    const bestOther=Math.min(...others.map(i=>getNet(hi,i)||99));
+    const result=wolfScore!==null&&wolfScore<=bestOther?'wolf-team':'other-team';
+    S.wolfHoles.push({hole:hi+1,wolf:wolf.name,partner:null,blindWolf:false,result});
+    saveRound();
+    showToast(result==='wolf-team'?`🐺 Lone Wolf wins! ${wolf.name} collects from all!`:`🐺 Lone Wolf loses! ${wolf.name} pays all.`);
+  }
+}
 
 // ─── Press bet checking ─────────────────────────────────────────
 function checkForPress(hi){
