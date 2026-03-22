@@ -6,8 +6,9 @@ import { nav, registerScreen } from '../router.js'
 function renderHome(){
   const el=ensureScr('home');
   const r=hasRound();
+  const isGuest = S.guest;
   const userName = S.profile?.name || '';
-  const hasGroup = S.currentGroupId && S.groups.length > 0;
+  const hasGroup = !isGuest && S.currentGroupId && S.groups.length > 0;
   const currentGroup = hasGroup ? S.groups.find(g=>g.id===S.currentGroupId) : null;
 
   el.innerHTML=`
@@ -15,7 +16,8 @@ function renderHome(){
   <div class="hero-logo">⛳</div>
   <div class="hero-title">Fairway<br>Bets</div>
   <div class="hero-sub">Golf · Wagers · Settled</div>
-  ${userName?`<div style="font-size:13px;color:var(--mut);margin-bottom:8px">Welcome, ${userName}</div>`:''}
+  ${isGuest?`<div style="font-size:13px;color:var(--mut);margin-bottom:4px">Playing as Guest</div><button class="auth-link" onclick="exitGuestMode()" style="font-size:12px;margin-bottom:8px">Sign In</button>`
+    :userName?`<div style="font-size:13px;color:var(--mut);margin-bottom:8px">Welcome, ${userName}</div>`:''}
   ${r?`<div class="resume-pill"><span class="resume-dot"></span> Round in progress</div>`:''}
 </div>
 <div style="padding:0 20px 20px">
@@ -34,10 +36,14 @@ function renderHome(){
   <button class="btn btn-outline" onclick="nav('debts')">Debts</button>
   `:''}
   <button class="btn btn-outline" onclick="nav('history')">Past Rounds</button>
+  ${isGuest?'':`
   <button class="btn btn-outline" onclick="nav('groups')">My Groups</button>
   <button class="btn btn-ghost" onclick="nav('profile')" style="margin-top:8px">Profile</button>
+  `}
   ${r?`<button class="btn btn-danger" style="margin-top:20px" onclick="abandon()">Abandon Current Round</button>`:''}
-  <button class="btn btn-ghost" onclick="signOutUser()" style="margin-top:8px;font-size:13px;color:var(--mut)">Sign Out</button>
+  ${isGuest
+    ?`<button class="btn btn-outline" onclick="exitGuestMode()" style="margin-top:16px">Create Account / Sign In</button>`
+    :`<button class="btn btn-ghost" onclick="signOutUser()" style="margin-top:8px;font-size:13px;color:var(--mut)">Sign Out</button>`}
   <div class="safe"></div>
 </div>`;
 }
@@ -64,8 +70,13 @@ window.abandon=function(){
 
 window.signOutUser=async function(){
   const { supabase } = await import('../supabase.js');
-  await supabase.auth.signOut();
-  S.user=null;S.profile=null;S.groups=[];S.currentGroupId=null;
+  if(supabase) await supabase.auth.signOut();
+  S.user=null;S.profile=null;S.groups=[];S.currentGroupId=null;S.guest=false;
+  nav('login');
+};
+
+window.exitGuestMode=function(){
+  S.guest=false;
   nav('login');
 };
 

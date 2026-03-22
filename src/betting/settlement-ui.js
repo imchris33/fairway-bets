@@ -136,6 +136,14 @@ function renderSettlement(){
       </div>`).join('')}
   </div>
 
+  ${S.guest?`
+  <div style="padding:0 20px 16px">
+    <div style="background:rgba(201,168,75,.08);border:1px solid rgba(201,168,75,.25);border-radius:12px;padding:16px;text-align:center;margin-bottom:12px">
+      <div style="font-size:14px;color:var(--txt);margin-bottom:4px;line-height:1.5">Want to save this round and track your season?</div>
+      <div style="font-size:12px;color:var(--mut);margin-bottom:12px">Create a free account</div>
+      <button class="btn btn-outline" onclick="guestSignup()" style="padding:10px;font-size:13px;color:var(--gold);border-color:var(--gold)">Sign Up</button>
+    </div>
+  </div>`:''}
   <div style="padding:0 20px 16px">
     <button class="btn btn-gold" onclick="doneRound()" style="font-size:15px">✓ Everyone's Paid — Save Round</button>
   </div>
@@ -183,6 +191,11 @@ window.doneRound=async function(){
   S.players=[{name:'',hc:0},{name:'',hc:0},{name:'',hc:0},{name:'',hc:0}];
   S.scores=blank18();
   nav('home');
+};
+
+window.guestSignup=function(){
+  S.guest=false;
+  nav('signup');
 };
 
 registerScreen('summary', renderSummary);

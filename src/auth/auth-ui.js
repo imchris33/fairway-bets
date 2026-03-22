@@ -1,3 +1,4 @@
+import { S } from '../state.js'
 import { ensureScr, showToast } from '../utils.js'
 import { nav, registerScreen } from '../router.js'
 import { signUp, signIn, resetPassword, updatePassword } from './auth.js'
@@ -18,6 +19,12 @@ function renderLogin(){
     <div style="text-align:center;margin-top:12px">
       <button class="auth-link" onclick="nav('forgot')">Forgot password?</button>
     </div>
+    <div style="display:flex;align-items:center;gap:12px;margin:20px 0 12px">
+      <div style="flex:1;height:1px;background:var(--brd)"></div>
+      <div style="font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.08em">or</div>
+      <div style="flex:1;height:1px;background:var(--brd)"></div>
+    </div>
+    <button class="btn btn-outline" onclick="enterGuestMode()" style="color:var(--mut)">Continue as Guest</button>
   </div>
 </div>`;
   document.getElementById('login-btn').onclick=async()=>{
@@ -136,6 +143,15 @@ function renderResetPassword(){
     }
   };
 }
+
+window.enterGuestMode=function(){
+  S.guest=true;
+  S.user=null;
+  S.profile=null;
+  S.groups=[];
+  S.currentGroupId=null;
+  nav('home');
+};
 
 registerScreen('login', renderLogin);
 registerScreen('signup', renderSignup);

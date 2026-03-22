@@ -17,6 +17,7 @@ export let S={
   scores:blank18(),
   history:[],
   // Multi-user state
+  guest:false,
   user:null,
   profile:null,
   currentGroupId:null,
