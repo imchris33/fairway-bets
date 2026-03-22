@@ -49,3 +49,38 @@ export function saveGroupId(){
     else localStorage.removeItem('fb_gid');
   }catch(e){}
 }
+
+// ─── LOCAL DEBT TRACKER ──────────────────────────────────────
+function debtKey(){
+  const names=S.players.filter(p=>p.name).map(p=>p.name.toLowerCase().trim()).sort().join('-');
+  return 'fb_debts_'+names;
+}
+export function loadLocalDebts(){
+  try{return JSON.parse(localStorage.getItem(debtKey()))||[];}catch{return [];}
+}
+export function saveLocalDebts(debts){
+  try{localStorage.setItem(debtKey(),JSON.stringify(debts));}catch(e){}
+}
+export function addLocalDebts(txns){
+  const debts=loadLocalDebts();
+  const roundId=crypto.randomUUID();
+  const date=new Date().toISOString().slice(0,10);
+  txns.forEach(t=>{
+    debts.push({
+      id:crypto.randomUUID(),
+      from:S.players[t.from]?.name||'',
+      to:S.players[t.to]?.name||'',
+      amount:t.amt,
+      roundId,
+      date,
+      paid:false
+    });
+  });
+  saveLocalDebts(debts);
+}
+export function markLocalDebtPaid(debtId){
+  const debts=loadLocalDebts();
+  const d=debts.find(x=>x.id===debtId);
+  if(d) d.paid=true;
+  saveLocalDebts(debts);
+}

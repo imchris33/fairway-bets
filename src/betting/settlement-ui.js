@@ -1,4 +1,4 @@
-import { S, blank18, clearRound, pushHistory } from '../state.js'
+import { S, blank18, clearRound, pushHistory, loadLocalDebts, addLocalDebts, markLocalDebtPaid } from '../state.js'
 import { PC } from '../constants.js'
 import { par3s, pn, ensureScr } from '../utils.js'
 import { nav, registerScreen } from '../router.js'
@@ -110,9 +110,29 @@ function renderSettlement(){
     </div>
   </div>
 
+  ${(()=>{
+    const prev=loadLocalDebts().filter(d=>!d.paid);
+    if(!prev.length) return '';
+    const roundDates=[...new Set(prev.map(d=>d.date))];
+    return `
+  <div style="padding:16px 20px;border-bottom:1px solid #1a3525">
+    <div style="font-size:9px;color:var(--gold);text-transform:uppercase;letter-spacing:.09em;font-weight:600;margin-bottom:10px">📋 Running tab — ${roundDates.length} previous round${roundDates.length>1?'s':''}</div>
+    <div style="background:rgba(201,168,75,.04);border:1px solid rgba(201,168,75,.2);border-radius:12px;padding:12px;margin-bottom:4px">
+      ${prev.map(d=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+        <div style="font-size:13px;color:var(--txt)">${d.from} → ${d.to} · <strong style="color:var(--gold)">$${d.amount}</strong></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:10px;color:var(--mut)">${d.date}</span>
+          <button onclick="markPrevDebtPaid('${d.id}')" style="padding:4px 10px;border-radius:6px;background:rgba(94,196,122,.1);border:1px solid rgba(94,196,122,.25);color:#5ec47a;font-size:11px;cursor:pointer;font-family:Outfit,sans-serif">Mark paid</button>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+  })()}
+
   <div style="padding:16px 20px;flex:1">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <div style="font-size:9px;color:var(--gold);text-transform:uppercase;letter-spacing:.09em;font-weight:600">Settle up</div>
+      <div style="font-size:9px;color:var(--gold);text-transform:uppercase;letter-spacing:.09em;font-weight:600">Settle up — this round</div>
       <div style="font-size:11px;color:var(--mut);background:var(--dim);padding:3px 8px;border-radius:5px">${txns.length} payment${txns.length!==1?'s':''}</div>
     </div>
     ${txns.length===0
@@ -184,6 +204,9 @@ window.doneRound=async function(){
   };
   pushHistory(histEntry);
 
+  // Save debts locally for carry-forward tracking
+  if(txns.length>0) addLocalDebts(txns);
+
   // Save to cloud if authenticated and in a group
   if(S.user && S.currentGroupId){
     try{
@@ -213,6 +236,11 @@ window.doneRound=async function(){
   S.players=[{name:'',hc:0},{name:'',hc:0},{name:'',hc:0},{name:'',hc:0}];
   S.scores=blank18();
   nav('home');
+};
+
+window.markPrevDebtPaid=function(debtId){
+  markLocalDebtPaid(debtId);
+  renderSettlement();
 };
 
 window.saveSelectedPlayers=function(){
