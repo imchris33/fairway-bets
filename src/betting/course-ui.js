@@ -86,6 +86,9 @@ function renderCourse(){
 }
 
 // ─── Course Search ─────────────────────────────────────────────
+// Cache search results so we can load a course without a second API call
+let _searchCache = [];
+
 window.courseSearch=function(query){
   clearTimeout(_searchTimer);
   const container=document.getElementById('course-results');
@@ -100,19 +103,18 @@ window.courseSearch=function(query){
       const res=await fetch(`/api/courses?q=${encodeURIComponent(query.trim())}`);
       const data=await res.json();
       const courses=data.courses||[];
+      _searchCache=courses;
       if(!courses.length){
         container.innerHTML=`<div style="padding:10px;color:var(--mut);font-size:13px">No courses found — try a shorter name or enter manually below.</div>`;
         return;
       }
-      // Each result is a club — show club name + location
-      // Clicking fetches the full course (first/only course in that club)
-      container.innerHTML=courses.slice(0,8).map(club=>{
-        const loc=club.location;
+      // Each result IS a course (id, club_name, tees, location)
+      container.innerHTML=courses.slice(0,8).map((c,idx)=>{
+        const loc=c.location;
         const city=loc?[loc.city,loc.state||loc.country].filter(Boolean).join(', '):'';
-        const courseId=club.courses?.[0]?.id||club.id;
-        const clubName=(club.club_name||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
-        return `<div onclick="selectCourse(${courseId},'${clubName}')" style="padding:10px 0;border-bottom:1px solid var(--brd);cursor:pointer">
-          <div style="font-size:14px;font-weight:500">${club.club_name}</div>
+        const name=(c.club_name||c.course_name||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+        return `<div onclick="selectCourse(${idx},'${name}')" style="padding:10px 0;border-bottom:1px solid var(--brd);cursor:pointer">
+          <div style="font-size:14px;font-weight:500">${c.club_name||c.course_name}</div>
           <div style="font-size:11px;color:var(--mut)">${city}</div>
         </div>`;
       }).join('');
@@ -122,54 +124,61 @@ window.courseSearch=function(query){
   },400);
 };
 
-window.selectCourse=async function(courseId, clubName){
+window.selectCourse=function(cacheIdx, courseName){
   const container=document.getElementById('course-results');
-  if(container) container.innerHTML=`<div style="padding:10px;color:var(--mut);font-size:13px"><span class="spin">⛳</span> Loading ${clubName||'course'}...</div>`;
-  try{
-    const res=await fetch(`/api/courses?id=${courseId}`);
-    const data=await res.json();
-    const course=data.course;
-    if(!course){throw new Error('Course not found');}
-
-    // Parse holes from course tees
-    const holes=parseHolesFromCourse(course);
-    if(!holes||holes.length!==18){
-      if(container) container.innerHTML=`<div style="padding:10px;color:var(--red);font-size:13px">Course data incomplete — please enter manually.</div>`;
-      return;
-    }
-
-    // Apply holes data
-    holes.forEach((h,i)=>{
-      S.holes[i].par=h.par;
-      S.holes[i].si=h.si;
-      S.holes[i]._fromApi=true;
-    });
-
-    _courseName=course.course_name||course.club_name||clubName||'Course';
-    S.courseName=_courseName;
-    renderCourse();
-  }catch(e){
-    if(container) container.innerHTML=`<div style="padding:10px;color:var(--red);font-size:13px">Failed to load course data.</div>`;
+  const course=_searchCache[cacheIdx];
+  if(!course){
+    if(container) container.innerHTML=`<div style="padding:10px;color:var(--red);font-size:13px">Course not found — try searching again.</div>`;
+    return;
   }
+
+  // Parse holes from course tees (search already returns full data)
+  const holes=parseHolesFromCourse(course);
+  if(!holes||holes.length!==18){
+    if(container) container.innerHTML=`<div style="padding:10px;color:var(--red);font-size:13px">Course data incomplete (${holes?holes.length:0} holes) — please enter manually.</div>`;
+    return;
+  }
+
+  // Apply holes data
+  holes.forEach((h,i)=>{
+    S.holes[i].par=h.par;
+    S.holes[i].si=h.si;
+    S.holes[i]._fromApi=true;
+  });
+
+  _courseName=course.course_name||course.club_name||courseName||'Course';
+  S.courseName=_courseName;
+  renderCourse();
 };
 
 function parseHolesFromCourse(course){
-  if(!course||!course.tees||course.tees.length===0) return null;
-  // Pick tee: prefer middle tee (white/regular) — good for casual gambling rounds
-  let tee=course.tees[0];
+  if(!course||!course.tees) return null;
+
+  // API returns tees as { male: [...], female: [...] } — flatten to array
+  let allTees=[];
+  if(Array.isArray(course.tees)){
+    allTees=course.tees;
+  }else if(typeof course.tees==='object'){
+    // Prefer male tees for default, fall back to any
+    allTees=course.tees.male||course.tees.female||Object.values(course.tees).flat();
+  }
+  if(!allTees.length) return null;
+
+  // Pick tee: prefer middle tee (white/blue) — good for casual gambling rounds
+  let tee=allTees[0];
   const preferred=['white','blue','regular','men'];
   for(const p of preferred){
-    const found=course.tees.find(t=>t.tee_name?.toLowerCase().includes(p));
+    const found=allTees.find(t=>t.tee_name?.toLowerCase().includes(p));
     if(found){tee=found;break;}
   }
   if(!tee.holes||tee.holes.length===0) return null;
+
   // Map into app's hole format: { par: 4, si: 7 }
-  return tee.holes
-    .sort((a,b)=>a.hole_number-b.hole_number)
-    .map(h=>({
-      par:h.par,
-      si:h.stroke_index||h.handicap||0
-    }));
+  // API holes are in order (no hole_number field), use handicap for SI
+  return tee.holes.map((h,i)=>({
+    par:h.par,
+    si:h.handicap||h.stroke_index||0
+  }));
 }
 
 // ─── Manual controls ───────────────────────────────────────────
