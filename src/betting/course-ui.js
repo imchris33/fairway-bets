@@ -189,7 +189,7 @@ window.setAllPar=function(){
   _courseName='';
   renderCourse();
 };
-window.startRound=function(){saveRound();nav('scorecard');};
+window.startRound=function(){saveRound();nav('strokes');};
 
 // ─── AI Course Scan ────────────────────────────────────────────
 window.handleCourseScan=async function(input){
