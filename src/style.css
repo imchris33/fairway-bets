@@ -10,6 +10,7 @@
 html{font-size:16px;height:100%}
 body{background:var(--bg);color:var(--txt);font-family:'Outfit',sans-serif;min-height:100vh;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
 #app{max-width:430px;margin:0 auto;min-height:100vh;position:relative}
+#app:has(#s-landing.active){max-width:none}
 .screen{min-height:100vh;display:none;flex-direction:column}
 .screen.active{display:flex}
 
@@ -227,3 +228,163 @@ input[type=number]{text-align:center;width:80px}
 .toast.error{border-color:rgba(216,80,80,.5);color:var(--red)}
 .toast.success{border-color:rgba(94,196,122,.5);color:var(--green)}
 @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* ================================================
+   LANDING PAGE
+   ================================================ */
+.lp{background:var(--bg);min-height:100vh;overflow-x:hidden;position:relative;padding-bottom:72px}
+
+/* Nav */
+.lp-nav{position:fixed;top:0;left:0;right:0;z-index:50;transition:background .3s,border-color .3s,box-shadow .3s;background:transparent;border-bottom:1px solid transparent}
+.lp-nav.scrolled{background:rgba(9,21,16,.95);border-bottom-color:var(--brd);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 2px 20px rgba(0,0,0,.3)}
+.lp-nav-inner{max-width:960px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:14px 20px}
+.lp-nav-brand{display:flex;align-items:center;gap:8px}
+.lp-nav-logo{font-size:22px;line-height:1}
+.lp-nav-wordmark{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--gold);letter-spacing:-.01em}
+.lp-nav-cta{padding:8px 20px;border-radius:8px;background:var(--gold);color:#091510;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;border:none;cursor:pointer}
+.lp-nav-cta:active{transform:scale(.97)}
+
+/* Hero */
+.lp-hero{padding:100px 20px 60px;max-width:960px;margin:0 auto}
+.lp-hero-inner{display:flex;align-items:center;gap:48px}
+.lp-hero-content{flex:1;min-width:0}
+.lp-badge{display:inline-block;font-size:12px;color:var(--gold);background:rgba(201,168,75,.1);border:1px solid rgba(201,168,75,.25);padding:5px 14px;border-radius:20px;margin-bottom:20px;letter-spacing:.02em}
+.lp-h1{font-family:'Cormorant Garamond',serif;font-size:42px;font-weight:700;color:var(--txt);line-height:1.15;margin-bottom:16px;letter-spacing:-.02em}
+.lp-h1-gold{color:var(--gold)}
+.lp-sub{font-size:16px;color:var(--mut);line-height:1.65;margin-bottom:24px}
+.lp-hero-btns{display:flex;gap:10px;flex-wrap:wrap}
+.lp-btn{width:auto;padding:14px 28px;font-size:15px}
+.lp-fine{font-size:12px;color:var(--mut);margin-top:12px;opacity:.7}
+
+/* Phone mockup */
+.lp-hero-phone{flex-shrink:0;width:280px}
+.lp-phone-frame{background:#000;border-radius:36px;padding:8px;box-shadow:0 20px 60px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.08);position:relative;overflow:hidden}
+.lp-phone-notch{width:100px;height:20px;background:#000;border-radius:0 0 16px 16px;position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:2}
+.lp-phone-screen{background:var(--bg);border-radius:28px;overflow:hidden;max-height:520px;overflow-y:auto}
+.lp-phone-screen::-webkit-scrollbar{display:none}
+
+/* Settlement mockup inside phone */
+.mock-s{font-family:'Outfit',sans-serif;font-size:10px}
+.mock-rainbow{height:2px;background:linear-gradient(90deg,#e0835a,#c9a84b,#5ec47a,#5a9ed6,#a07dd4)}
+.mock-header{padding:16px 12px 10px;text-align:center;border-bottom:1px solid #1a3525}
+.mock-title{font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--gold);font-weight:700;margin-bottom:2px}
+.mock-course{font-size:8px;color:var(--mut);margin-bottom:6px}
+.mock-sec{padding:8px 10px;border-bottom:1px solid #1a3525}
+.mock-lbl{font-size:7px;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:5px}
+.mock-winner{display:flex;align-items:center;gap:5px;padding:4px 6px;background:var(--card);border-radius:6px;margin-bottom:3px;font-size:8px}
+.mock-trophy{font-size:10px}
+.mock-wgame{font-size:6px;color:var(--mut);flex:1;text-transform:uppercase;letter-spacing:.04em}
+.mock-wname{font-size:8px;font-weight:600}
+.mock-wearn{font-size:8px;font-weight:600;color:var(--gold);min-width:28px;text-align:right}
+.mock-bal-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.mock-bal{background:var(--card);border-radius:6px;padding:5px 7px}
+.mock-bal-pos{border-left:2px solid #5ec47a}
+.mock-bal-neg{border-left:2px solid #d85050}
+.mock-bal-name{font-size:7px;font-weight:600;margin-bottom:1px}
+.mock-bal-amt{font-size:12px;font-weight:700;line-height:1.2}
+.mock-bal-tag{font-size:5px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+.mock-count{font-size:7px;color:var(--mut);background:var(--dim);padding:2px 5px;border-radius:3px}
+.mock-txn{display:flex;align-items:stretch;margin-bottom:4px;border-radius:6px;overflow:hidden;border:1px solid var(--brd);font-size:8px}
+.mock-txn-from{flex:1;padding:5px 6px;background:var(--card)}
+.mock-txn-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3px 5px;background:var(--card);color:var(--mut);font-size:7px;gap:1px}
+.mock-txn-amt{font-size:11px;font-weight:700;color:var(--gold);line-height:1}
+.mock-txn-to{flex:1;padding:5px 6px;background:#1f3828;text-align:right}
+.mock-txn-lbl{font-size:5px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;margin-bottom:1px}
+.mock-done-btn{margin:8px 10px 12px;padding:7px;background:var(--gold);color:#091510;border-radius:8px;text-align:center;font-size:9px;font-weight:600}
+
+/* Sections */
+.lp-section{padding:60px 20px}
+.lp-container{max-width:800px;margin:0 auto}
+.lp-h2{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:700;color:var(--gold);text-align:center;margin-bottom:32px;letter-spacing:-.01em}
+
+/* Social proof */
+.lp-proof{background:linear-gradient(180deg,rgba(201,168,75,.04) 0%,transparent 100%)}
+.lp-stat-hero{text-align:center;margin-bottom:32px}
+.lp-stat-num{font-family:'Cormorant Garamond',serif;font-size:56px;font-weight:700;color:var(--gold);line-height:1}
+.lp-stat-label{font-size:14px;color:var(--mut);margin-top:4px}
+.lp-testimonials{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.lp-testimonial{background:var(--card);border:1px solid var(--brd);border-radius:14px;padding:18px;display:flex;gap:12px;align-items:flex-start}
+.lp-testi-avatar{width:36px;height:36px;border-radius:50%;background:var(--dim);border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--gold);flex-shrink:0}
+.lp-testi-body{flex:1;min-width:0}
+.lp-testi-text{font-size:13px;color:var(--txt);line-height:1.55;margin-bottom:8px;font-style:italic}
+.lp-testi-meta{font-size:11px;color:var(--mut)}
+
+/* Stats strip */
+.lp-stats-strip{background:var(--surf);border-top:1px solid var(--brd);border-bottom:1px solid var(--brd);padding:20px}
+.lp-strip-row{display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap}
+.lp-strip-item{font-size:14px;color:var(--mut)}
+.lp-strip-val{font-weight:600;color:var(--gold)}
+.lp-strip-dot{width:4px;height:4px;border-radius:50%;background:var(--brd)}
+
+/* Steps */
+.lp-steps{max-width:520px;margin:0 auto}
+.lp-step{display:flex;gap:16px;margin-bottom:0}
+.lp-step-timeline{display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:32px}
+.lp-step-num{width:32px;height:32px;border-radius:50%;background:var(--gold);color:#091510;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.lp-step-line{width:2px;flex:1;background:rgba(201,168,75,.25);min-height:32px}
+.lp-step-content{display:flex;gap:12px;align-items:flex-start;padding-bottom:28px;flex:1}
+.lp-step-icon{font-size:24px;flex-shrink:0;line-height:1}
+.lp-step-title{font-size:15px;font-weight:600;color:var(--txt);margin-bottom:4px}
+.lp-step-badge{display:inline-block;font-size:9px;color:var(--gold);background:rgba(201,168,75,.15);border:1px solid rgba(201,168,75,.25);padding:1px 7px;border-radius:10px;margin-left:8px;vertical-align:middle;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.lp-step-desc{font-size:13px;color:var(--mut);line-height:1.5}
+
+/* Games grid */
+.lp-games-sec{background:linear-gradient(180deg,transparent 0%,rgba(201,168,75,.03) 100%)}
+.lp-games-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.lp-game-card{background:var(--card);border:1px solid var(--brd);border-radius:14px;padding:18px;text-align:center;transition:border-color .2s}
+.lp-game-card:hover{border-color:rgba(201,168,75,.3)}
+.lp-game-icon{font-size:28px;margin-bottom:8px}
+.lp-game-name{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:var(--txt);margin-bottom:2px}
+.lp-game-amt{font-size:13px;color:var(--gold);font-weight:600;margin-bottom:6px}
+.lp-game-desc{font-size:11px;color:var(--mut);line-height:1.5}
+/* CTP is the 5th card — span full width */
+.lp-game-card:nth-child(5){grid-column:1/-1}
+
+/* Features grid */
+.lp-features-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.lp-feature-card{background:var(--card);border:1px solid var(--brd);border-radius:14px;padding:18px;text-align:center}
+.lp-feature-icon{font-size:28px;margin-bottom:8px}
+.lp-feature-title{font-size:14px;font-weight:600;color:var(--txt);margin-bottom:4px}
+.lp-feature-desc{font-size:11px;color:var(--mut);line-height:1.5}
+
+/* CTA section */
+.lp-cta-sec{background:linear-gradient(180deg,var(--bg) 0%,rgba(201,168,75,.04) 100%);padding-bottom:80px}
+
+/* Footer */
+.lp-footer{border-top:1px solid var(--brd);padding:28px 20px;text-align:center}
+.lp-footer-brand{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:var(--gold);margin-bottom:8px}
+.lp-footer-links{display:flex;gap:16px;justify-content:center;margin-bottom:12px}
+.lp-footer-copy{font-size:11px;color:var(--mut);opacity:.6}
+
+/* Sticky bottom bar (mobile) */
+.lp-sticky-bar{position:fixed;bottom:0;left:0;right:0;background:rgba(9,21,16,.95);border-top:1px solid var(--brd);padding:10px 16px env(safe-area-inset-bottom,10px);display:flex;gap:8px;z-index:50;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.lp-sticky-main{flex:2;padding:14px;margin:0;font-size:14px;font-weight:600}
+.lp-sticky-guest{flex:1;padding:14px;margin:0;font-size:14px;color:var(--mut)}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:768px){
+  .lp-hero{padding:80px 20px 40px}
+  .lp-hero-inner{flex-direction:column;gap:32px;text-align:center}
+  .lp-hero-content{order:1}
+  .lp-hero-phone{order:2;width:240px}
+  .lp-h1{font-size:32px}
+  .lp-sub{font-size:14px}
+  .lp-hero-btns{flex-direction:column;align-items:stretch}
+  .lp-btn{width:100%;text-align:center}
+  .lp-testimonials{grid-template-columns:1fr}
+  .lp-features-grid{grid-template-columns:1fr 1fr}
+  .lp-stat-num{font-size:44px}
+  .lp-section{padding:40px 16px}
+}
+@media(max-width:480px){
+  .lp-h1{font-size:28px}
+  .lp-h2{font-size:26px}
+  .lp-features-grid{grid-template-columns:1fr}
+  .lp-games-grid{grid-template-columns:1fr}
+  .lp-game-card:nth-child(5){grid-column:auto}
+  .lp-hero-phone{width:220px}
+}
+@media(min-width:769px){
+  .lp-sticky-bar{display:none}
+  .lp{padding-bottom:0}
+}

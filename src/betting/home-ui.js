@@ -72,12 +72,12 @@ window.signOutUser=async function(){
   const { supabase } = await import('../supabase.js');
   if(supabase) await supabase.auth.signOut();
   S.user=null;S.profile=null;S.groups=[];S.currentGroupId=null;S.guest=false;
-  nav('login');
+  nav('landing');
 };
 
 window.exitGuestMode=function(){
   S.guest=false;
-  nav('login');
+  nav('landing');
 };
 
 registerScreen('home', renderHome);

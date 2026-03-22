@@ -23,6 +23,7 @@ import './rounds/rounds-ui.js'
 import './leaderboard/leaderboard-ui.js'
 import './debts/debts-ui.js'
 import './share/share.js'
+import './landing/landing-ui.js'
 
 // Expose S globally for inline oninput handlers like "S.players[0].name=this.value"
 window.S = S;
@@ -63,11 +64,11 @@ async function init(){
         S.screen = 'home';
       }
     }else{
-      S.screen = 'login';
+      S.screen = 'landing';
     }
   }catch(e){
     console.error('Auth init failed:', e);
-    S.screen = 'login';
+    S.screen = 'landing';
   }
   render();
 }
@@ -100,7 +101,7 @@ onAuthChange(async (event, session) => {
     S.profile = null;
     S.groups = [];
     S.currentGroupId = null;
-    nav('login');
+    nav('landing');
   }else if(event === 'PASSWORD_RECOVERY'){
     nav('reset-password');
   }
